@@ -1,5 +1,5 @@
 <?php
-function SiteLoad( $library )
+function SiteLoader( $library )
 {
 	$pathArray = explode( PATH_SEPARATOR, get_include_path() );
 
