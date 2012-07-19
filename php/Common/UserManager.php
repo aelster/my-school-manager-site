@@ -118,7 +118,7 @@ function UserManagerActivate( $new_val )
 {
 	include( "globals.php" );
 	if( $gTrace ) {
-		array_push( $GLOBALS[ 'gFunction' ], "UserManagerActivate( $new_val )" );
+		$gFunction[] = "UserManagerActivate( $new_val )";
 		Logger();
 	}
 	
@@ -159,7 +159,7 @@ function UserManagerControl()
 {
 	include( "globals.php" );
 	if( $gTrace ) { 
-		array_push( $GLOBALS[ 'gFunction' ], "UserManagerControl()" );
+		$gFunction[] = "UserManagerControl()";
 		Logger();
 	}
 
@@ -189,7 +189,7 @@ function UserManagerDelete()
 {
 	include( "globals.php" );
 	if( $gTrace ) {
-		array_push( $GLOBALS[ 'gFunction' ], "UserManagerDelete()" );
+		$gFunction[] = "UserManagerDelete()";
 		Logger();
 	}
 	
@@ -212,14 +212,14 @@ function UserManagerDelete()
 	DoQuery( "delete from access where userid = '$id'" );
 	DoQuery( "delete from grades where userid = '$id'" );
 	
-	if( $gTrace ) array_pop( $GLOBALS[ 'gFunction' ] );
+	if( $gTrace ) array_pop( $gFunction );
 }
 
 function UserManagerDisplay()
 {
 	include( "globals.php" );
 	if( $gTrace ) { 
-		array_push( $GLOBALS[ 'gFunction' ], "CommonV2:UserManagerDisplay()" );
+		$gFunction[] = "CommonV2:UserManagerDisplay()";
 		Logger();
 	}
 	
@@ -365,7 +365,7 @@ function UserManagerEdit()
 {
 	include( "globals.php" );
 	if( $gTrace ) {
-		array_push( $GLOBALS[ 'gFunction' ], "UserManagerEdit()" );
+		$gFunction[] = "UserManagerEdit()";
 		Logger();
 	}
 
@@ -406,8 +406,8 @@ function UserManagerEdit()
 function UserManagerReset()
 {
 	include( "globals.php" );
-	if( $GLOBALS['gTrace' ] ) {
-		array_push( $GLOBALS[ 'gFunction' ], "UserManagerReset" );
+	if( $gTrace ) {
+		$gFunction[] = "UserManagerReset";
 		Logger();
 	}
 #
@@ -415,18 +415,18 @@ function UserManagerReset()
 #
 	$query = "delete from challenge_record where sess_id = '" . session_id() . "'";
 	$query .= " or timestamp < " . time();
-	DoQuery( $query );
+	DoQuery( $query, $gDbControl );
 #
 # Store a new challenge to use
 #
 	$challenge = SHA256::hash(uniqid(mt_rand(), true));
 	$query = "insert into challenge_record (sess_id, challenge, timestamp)";
 	$query .= " values ('". session_id() ."', '". $challenge ."', ". (time() + 60*5) . ")";
-	DoQuery( $query );
+	DoQuery( $query, $gDbControl );
 #
 # Display the login
 #
-?>
+	echo <<<END
 <table>
 <tr>
 	<td>E-mail Address:</td>
@@ -439,7 +439,7 @@ function UserManagerReset()
 	</td>
 </tr>
 </table>
-<input type="hidden" name="challenge" id="challenge" value="<?php echo($challenge); ?>">
+<input type="hidden" name="challenge" id="challenge" value="$challenge">
 <input type="hidden" name="response" id="response" value="">
 <input type="hidden" name="bypass" id="bypass" value="">
 
@@ -447,7 +447,7 @@ function UserManagerReset()
 	var e = document.getElementById( 'default' );
 	if( e ) e.focus();
 </script>
-<?php
+END;
 	if( $gTrace ) array_pop( $gFunction );
 }
 
@@ -508,7 +508,7 @@ function UserManagerLoad( $userid )
 {
 	include( "globals.php" );	
 	if( $gTrace ) {
-		$GLOBALS[ 'gFunction' ][] = "UserManagerLoad()";
+		$gFunction[] = "UserManagerLoad()";
 		Logger();
 	}
 	
@@ -571,28 +571,28 @@ function UserManagerLogin()
 <table>
 <tr>
 	<td>Username:</td>
-	<td><input type="text" name="username" id="username" tabindex=1 value="$def_user " size="16" onkeydown="getPassword(event);"></td>
+	<td><input type="text" name="username" id="username" tabindex=1 value="$def_user " size="16" onkeydown="MyGetPassword(event);"></td>
 END;
-	if( ! empty( $GLOBALS['gMessage1'] ) ) { echo "<td class=msg>" . $GLOBALS['gMessage1'] . "</td>"; }
+	if( ! empty( $gMessage1 ) ) { echo "<td class=msg>" . $gMessage1 . "</td>"; }
 
 	echo <<<END
 </tr>
 <tr>
 	<td>Password:</td>
-	<td><input type="password" name="userpass" id="userpass" tabindex=2 value="" size="16" onkeydown="keyDown(event);"></td>
+	<td><input type="password" name="userpass" id="userpass" tabindex=2 value="" size="16" onkeydown="MyKeyDown(event);"></td>
 END;
-	if( ! empty( $GLOBALS['gMessage2'] ) ) { echo "<td class=msg>" . $GLOBALS['gMessage2'] . "</td>"; }
+	if( ! empty( $gMessage2 ) ) { echo "<td class=msg>" . $gMessage2 . "</td>"; }
 	
 	echo <<<END
 </tr>
 <tr>
 	<td colspan=2 align=center>
-		<input type=submit value=Login tabindex=4 id=login onclick="doChallengeResponse();">
-		<input type=submit value="Reset Password" tabindex=5 onclick="addAction( 'Reset Password' );">
+		<input type=submit value=Login tabindex=4 id=login onclick="MyChallengeResponse();">
+		<input type=submit value="Reset Password" tabindex=5 onclick="MyAddAction( 'Reset Password' );">
 	</td>
 </tr>
 </table>
-<input type="hidden" name="challenge" id="challenge" value="<?php echo($challenge); ?>">
+<input type="hidden" name="challenge" id="challenge" value="$challenge">
 <input type="hidden" name="response" id="response" value="">
 <input type="hidden" name="bypass" id="bypass" value="">
 
@@ -608,7 +608,7 @@ END;
 function UserManagerLogout() {
 	include( "globals.php" );
 	if( $gTrace ) {
-		array_push( $GLOBALS[ 'gFunction' ], "UserManagerLogout()" );
+		$gFunction[] = "UserManagerLogout()";
 		Logger();
 	}
 	SessionStuff( 'logout' );
@@ -621,7 +621,7 @@ function UserManagerLogout() {
 function UserManagerPassword() {
 	include( "globals.php" );
 	if( $gTrace ) {
-		array_push( $GLOBALS[ 'gFunction' ], "UserManagerPassword()" );
+		$gFunction[] = "UserManagerPassword()";
 		Logger();
 	}
 	
@@ -681,7 +681,7 @@ function UserManagerPrivileges()
 {
 	include( "globals.php" );
 	if( $gTrace ) {
-		array_push( $gFunction, "UserManagerPrivileges()" );
+		$gFunction[] = "UserManagerPrivileges()";
 		Logger();
 	}
 ?>
@@ -754,9 +754,11 @@ function UserManagerPrivileges()
 function UserManagerReport()
 {
 	include( "globals.php" );
-	if( $gTrace ) { echo "Func: UserManagerReport<br>"; }
-	array_push( $GLOBALS[ 'gFunction' ], "UserManagerReport" );
-
+	if( $gTrace ) {
+		$gFunction[] = "UserManagerReport";
+		Logger();
+	}
+	
 	echo "<input type=hidden name=from value=Users>";
 	echo "<input type=hidden name=addr_list id=addr_list>";
 	echo "<div id=users>";
@@ -833,24 +835,25 @@ function UserManagerReport()
 	
 	echo "</table>";
 	echo "</div>";
+	if( $gTrace ) array_pop( $gFunction );
 }
 
 function UserManagerResend()
 {
 	include( "globals.php" );
 	if( $gTrace ) {
-		array_push( $gFunction, "UserManagerResend()" );
+		$gFunction[] = "UserManagerResend()";
 		Logger();
 	}
 	
 	$email = $_POST["email"];
 	
-	$local_numrows = 0;
+	$gNumRows = 0;
 	
-	if( ! empty( $email ) ) DoQuery( "select * from users where email = '$email'");
+	if( ! empty( $email ) ) DoQuery( "select * from users where email = '$email'", $gDbControl );
 
-	if( $local_numrows > 0 ) {
-		$user = mysql_fetch_assoc( $local_result );
+	if( $gNumRows > 0 ) {
+		$user = mysql_fetch_assoc( $gResult );
 		$userid = $user['userid'];
 		
 		$str = mt_rand();
@@ -860,7 +863,7 @@ function UserManagerResend()
 		$opts[] = "pwdchanged = '0000-00-00 00:00:00'";
 		$opts[] = sprintf( "pwdexpires = '%s'", date( 'Y-m-d H:i:s', time() + 60*10 ) );
 		$query = "update users set " . join( ',', $opts ) . " WHERE userid = '$userid'";
-		DoQuery( $query );
+		DoQuery( $query, $gDbControl );
 		
 		$uri = sprintf( "http://%s%s", $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI']);
 		
@@ -877,14 +880,13 @@ function UserManagerResend()
 		$body[] = "  ${uri}";
 		$body[] = "";
       
-		$gma = $GLOBALS['gMailAdmin'];
+		$gma = $gSupport;
 		$from = is_array( $gma ) ? $gma : array( $gma );
 			
 		if( $GLOBALS['gMailLive'] ) {
 			$name = $user['first'] . " " . $user['last'];
 			$to = array( $user['email'] => $name );
 		} else {
-			$gma = $GLOBALS['gMailAdmin'];
 			$to = $from;
 		}
 		$subject = "Password Reset";
@@ -908,8 +910,10 @@ function UserManagerResend()
 function UserManagerSettings()
 {
 	include( "globals.php" );
-	if( $gTrace ) { echo "Func: UserManagerSettings<br>"; }
-	array_push( $GLOBALS[ 'gFunction' ], "UserManagerSettings" );
+	if( $gTrace ) { 
+		$gFunction[] = "UserManagerSettings";
+		Logger();
+	}
 
 	$num_args = func_num_args();
 	switch( $num_args )
@@ -1059,7 +1063,7 @@ function UserManagerUpdate()
 		} else {
 			$vargs = "";
 		}
-		$GLOBALS[ 'gFunction' ][] = "UserManagerUpdate($vargs)";
+		$gFunction[] = "UserManagerUpdate($vargs)";
 		Logger();
 	}
 
@@ -1376,61 +1380,64 @@ function UserManagerVerify() {
 		} else {
 			$vargs = "";
 		}
-		array_push( $GLOBALS[ 'gFunction' ], "UserManagerVerify($vargs)" );
+		$gFunction[] = "UserManagerVerify($vargs)";
 		Logger();
 	}
 	$ok = 0;
-	if( $GLOBALS['gUserVerified'] == 0 )
+	if( $gUserVerified == 0 )
 	{
 		$_SESSION['authenticated'] = 0;
-		$GLOBALS[ 'gAction' ] = "Start";
+		$gAction = "Start";
 		if( empty( $_POST[ 'username' ] ) && $_POST['bypass'] != 1 )
 		{
-			$GLOBALS['gMessage1'] = "&nbsp;** Please enter your username";
+			$gMessage1 = "&nbsp;** Please enter your username";
 			if( $gTrace ) array_pop( $gFunction );
 			return;
 		}
 		
 		if( !isset( $_POST[ 'userpass' ] ) || $_POST['userpass'] == "empty" )
 		{
-			$GLOBALS['gMessage2']= "&nbsp;** Please enter your password";
+			$gMessage2 = "&nbsp;** Please enter your password";
 			if( $gTrace ) array_pop( $gFunction );
 			return;
 		}
 		
 		$query = "select challenge from challenge_record";
 		$query .= " where sess_id = '" . session_id() . "' and timestamp > " . time();
-		DoQuery( $query );
-		$c_array = mysql_fetch_assoc( $local_result );
+		DoQuery( $query, $gDbControl );
+		$c_array = mysql_fetch_assoc( $gResult );
 		if( empty( $_POST['username'] ) ) {
 			$query = "select userid, username, password from users where password = '" . $_POST['response'] . "'";
-			DoQuery( $query );
-			$ok = $local_numrows > 0;
+			DoQuery( $query, $gDbControl );
+			$ok = $gNumRows > 0;
 			if( $ok )
 			{
-				$user = mysql_fetch_assoc( $local_result );
+				$user = mysql_fetch_assoc( $gResult );
 				UserManager( 'load', $user['userid'] );
 				UserManager( 'newpassword' );
 			}
 			
 		} else {
 			$query = "select userid, username, password, pwdexpires from users where username = '" . $_POST['username'] . "'";
-			DoQuery( $query );
-			if( $local_numrows > 0 ) {
+			DoQuery( $query, $gDbControl );
+			if( $gNumRows > 0 ) {
 				$now = date( 'Y-m-d H:i:s' );
-				$user = mysql_fetch_assoc( $local_result );
+				$user = mysql_fetch_assoc( $gResult );
 				$pass = ( strlen( $user['password'] ) == 64 ) ? $user['password'] : SHA256::hash($user['password'] );
 				$response_string = strtolower($user['username']) . ':' . $pass . ':' . $c_array['challenge'];
 				$expected_response = SHA256::hash($response_string);
 				$ok = ( $_POST['response'] == $expected_response ) ? 1 : 0;
 				if( $now > $user['pwdexpires'] ) {
-					echo "Your password has expired!  Click on:  Reset Password<br>";
+					$gMessage2 = "Your password has expired!  Click on:  Reset Password";
 					$ok = 0;
 				}
-				if( ! $ok ) { $GLOBALS['gMessage2'] = "&nbsp;** Invalid password"; }
+				if( ! $ok ) {
+					$gMessage2 = "&nbsp;** Invalid password.  Please try again or press Reset Password";
+				}
 			} else {
 				$ok = false;
-				$GLOBALS['gMessage1'] = "&nbsp;** Invalid username";
+#				$gMessage1 = "&nbsp;** Invalid username";
+				$gMessage2 = "&nbsp;** Invalid password.  Please try again or press Reset Password";
 			}
 		}
 		if( $ok > 0 )
@@ -1441,7 +1448,7 @@ function UserManagerVerify() {
 			UserManager( 'load', $user['userid'] );
 			$ts = time();
 			$expires = date( 'Y-m-d H:i:s', $ts + 60*60*24*60 ); # two months
-			DoQuery( "update users set lastlogin = now(), pwdexpires='$expires' where userid = '" . $user['userid'] . "'");
+			DoQuery( "update users set lastlogin = now(), pwdexpires='$expires' where userid = '" . $user['userid'] . "'", $gDbControl );
 			$text = array();
 			$text[] = "insert event_log set time=now()";
 			$text[] = "type = 'login'";
@@ -1452,7 +1459,7 @@ function UserManagerVerify() {
 			if( $GLOBALS[ 'PasswdChanged' ] == '0000-00-00 00:00:00' ) {
 				UserManagerPassword();
 			}
-			$GLOBALS[ 'gAction' ] = ( empty( $GLOBALS['gEnabled'] ) || empty( $GLOBALS['gActive'] ) ) ? "Inactive" : "Welcome";
+			$gAction = ( empty( $GLOBALS['gEnabled'] ) || empty( $GLOBALS['gActive'] ) ) ? "Inactive" : "Welcome";
 		}
 		else
 		{
@@ -1460,17 +1467,18 @@ function UserManagerVerify() {
 			if( ! empty( $_POST[ 'username' ] ) )
 			{
 				$query = "select userid from users where username = '" . $_POST['username'] . "'";
-				DoQuery( $query );
-				if( $local_numrows == 0 ) {
-					$GLOBALS['gMessage1'] = "&nbsp;** Invalid username: " . $_POST['username'];
+				DoQuery( $query, $gDbControl );
+				if( $gNumRows == 0 ) {
+#					$gMessage1 = "&nbsp;** Invalid username: " . $_POST['username'];  Don't give away information
+					$gMessage2 = "&nbsp;** Invalid password.  Please try again or press Reset Password";
 				}
 			} else {
-				$GLOBALS['gMessage2'] = "&nbsp;** Password verification error.  Please try again";
+				$gMessage2 = "&nbsp;** Invalid password.  Please try again or press Reset Password";
 			}
-			$GLOBALS[ 'gAction' ]  = "Start";
+			$gAction = "Start";
 		}
 	} else {
-		$GLOBALS[ 'gAction' ]  = empty( $gActive ) ? "Inactive" : "Welcome";
+		$gAction = empty( $gActive ) ? "Inactive" : "Welcome";
 	}
 	if( $gTrace ) array_pop( $gFunction );
 }
