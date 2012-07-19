@@ -1,0 +1,22 @@
+<?php
+//------------------------------------------------
+// MySQL settings
+//------------------------------------------------
+$gMysqlHost = "";
+$gMysqlUser = "";
+$gMysqlPass = "";
+$gMysqlDbname = "";
+$gMysqlSuffix = ""; // this is used to have prior year databases
+
+//------------------------------------------------
+// Web settings
+//------------------------------------------------
+$gSupport = "your-support-name@your-company.com";
+$gSiteName = "";  // Displayed in the header, 
+
+//------------------------------------------------
+// Mail settings
+//------------------------------------------------
+$gMailLive = 0;  // All mail sent to gSupport unless enabled
+
+?>
