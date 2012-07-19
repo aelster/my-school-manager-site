@@ -1,0 +1,5 @@
+<?php
+$gTitle = "Parent Portal";
+$gLogoImage = "tvt_log_home.gif";
+$gLogoURL = "http://www.tarbut.com/";
+?>
