@@ -1,25 +1,27 @@
 <?php
 function MyMail( $message ) {
 	include( "globals.php" );
+	require_once('local-mail-setup.php');
+	
 	if( $gTrace ) {
 		$gFunction[] = "MyMail()";
 		Logger();
 	}
-  	
-	global $MyMailer;
+
+	global $MyMailer;  	
 	global $logger;
 
+	$debug = 0;
 	$sites = array();
 	$dest_lists = array();
 	$orig_to = $message->getTo();
 	
 	foreach( $orig_to as $email => $name ) {
-		$site = $GLOBALS['gSite'];
+		$site = preg_match( "/$gMailRemapFrom/", $email ) ? $gMailRemapTo : $gMailSite;
 		$sites[ $site ] = 1;
 		$dest_lists[ $site ][ $email ] = $name;
 	}
 
-		
 	foreach( array_keys( $sites ) as $site )
 	{
 		foreach( $dest_lists[$site] as $email => $name ) {
@@ -30,21 +32,24 @@ function MyMail( $message ) {
 			}
 		}
 		$login_required = 0;
-		switch( $site ) {
-			case( "local" ):
-				$idx = 0;
-				$mail_server = "localhost";
-				$port = 25;
-				break;
+		if( ! empty( $gMailSetup[$site]['username'] ) ) {
+			$username = $gMailSetup[$site]['username'];
+			$password = $gMailSetup[$site]['password'];
+			$login_required = 1;
 		}
-
+		Logger("gSite: $gMailSite, site: $site");
+		$idx = $gMailSetup[$site]['idx'];
+		$mail_server = $gMailSetup[$site]['server'];
+		$port = $gMailSetup[$site]['port'];
+		
 		if( empty( $MyMailer[$idx] ) )
 		{		
-			if( $login_required > 0 )
+			if( $login_required )
 			{
 				$transport = Swift_SmtpTransport::newInstance($mail_server,$port);
 				$transport->setUsername( $username );
 				$transport->setPassword( $password );
+				$transport->setEncryption('ssl');
 			} else {
 				$transport =Swift_SmtpTransport::newInstance($mail_server,$port);
 			}
@@ -73,10 +78,10 @@ function MyMail( $message ) {
 				}
 				$body = join( "<br>", $text );
 				$msg = Swift_Message::newInstance();
-				$msg->setTo(array( $GLOBALS['gMailAdmin'] => 'Author' ) );
-				$msg->setSubject('Email failures from ' . $GLOBALS['mysql_dbname'] );
+				$msg->setTo(array( $gSupport => 'Support' ) );
+				$msg->setSubject('Email failures');
 				$msg->setBody($body,'text/html');
-				$msg->setFrom( array('support@tarbut.com' => 'Author') );
+				$msg->setFrom( array($gSupport => 'Support') );
 				$gNumSent = $MyMailer[$idx]->send($msg);
 			}
 		} else {

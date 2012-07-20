@@ -229,13 +229,13 @@ function UserManagerDisplay()
 	echo sprintf( "<input type=hidden name=userid value='%d'>", $GLOBALS['gUserId'] );
 
 	$acts = array();
-	$acts[] = "addAction('Back')";
+	$acts[] = "MyAddAction('Back')";
 	echo sprintf( "<input type=button onClick=\"%s\" value=Back>", join(';',$acts ) );
 
 	$acts = array();
-	$acts[] = "setValue('area','update')";
-	$acts[] = "setValue('id', '" . $GLOBALS['gUserId'] . "')";
-	$acts[] = "addAction('Update')";
+	$acts[] = "MySetValue('area','update')";
+	$acts[] = "MySetValue('id', '" . $GLOBALS['gUserId'] . "')";
+	$acts[] = "MyAddAction('Update')";
 	echo sprintf( "<input type=button onClick=\"%s\" id=update value=Update>", join(';',$acts ) );
 	
 	$vprivs = array();
@@ -310,8 +310,8 @@ function UserManagerDisplay()
 
 			echo "<td>";
 			$acts = array();
-			$acts[] = "setValue('area','delete')";
-			$acts[] = "setValue('id', '$id')";
+			$acts[] = "MySetValue('area','delete')";
+			$acts[] = "MySetValue('id', '$id')";
 			$name = sprintf( "%s %s", $user['first'], $user['last'] );
 			$acts[] = "myConfirm('Are you sure you want to delete $name')";
 			echo sprintf( "<input type=button onClick=\"%s\" id=update value=Del>", join(';',$acts ) );
@@ -349,9 +349,9 @@ function UserManagerDisplay()
 	echo "</select></td>";
 	echo "<td>";
 	$acts = array();
-	$acts[] = "setValue('area','add')";
-	$acts[] = "setValue('id', '" . $GLOBALS['gUserId'] . "')";
-	$acts[] = "addAction('Update')";
+	$acts[] = "MySetValue('area','add')";
+	$acts[] = "MySetValue('id', '" . $GLOBALS['gUserId'] . "')";
+	$acts[] = "MyAddAction('Update')";
 	echo sprintf( "<input type=button onClick=\"%s\" id=update value=Add>", join(';',$acts ) );
 	echo "</td>";
 	
@@ -397,7 +397,7 @@ function UserManagerEdit()
 	echo "</table>";
 	echo "</div>";
 	echo "<input type=submit name=action value=Back>";
-	echo "<input type=button onclick=\"setValue( 'id', '$id'); setValue( 'btn_action', 'Update' ); addAction('Update');\" value=Update>";
+	echo "<input type=button onclick=\"MySetValue( 'id', '$id'); MySetValue( 'btn_action', 'Update' ); MyAddAction('Update');\" value=Update>";
 		
 	if( $gTrace) array_pop( $gFunction );
 
@@ -430,7 +430,7 @@ function UserManagerReset()
 <table>
 <tr>
 	<td>E-mail Address:</td>
-	<td><input type="text" name="email" id=default value="" size="16" ></td>
+	<td><input type="text" name="email" id=default value="" size="32" ></td>
 </tr>
 <tr>
 	<td>&nbsp;</td>
@@ -511,34 +511,21 @@ function UserManagerLoad( $userid )
 		$gFunction[] = "UserManagerLoad()";
 		Logger();
 	}
-	
-	$query = sprintf( "show tables from %s like 'access'", $GLOBALS['mysql_dbname'] );
-	DoQuery( $query );
-	if( $local_numrows == 0 ) {
-		if( $gTrace ) array_pop( $gFunction );
-		return;
-	}
-	
-	$query = "SELECT * from `users` WHERE `userid` = '$userid'";
-	DoQuery( $query );
-	$row = mysql_fetch_assoc( $local_result );
-	$GLOBALS[ 'gUserId' ] = $userid;
-	$GLOBALS[ 'FirstName' ] = $row['first'];
-	$GLOBALS[ 'LastName' ] = $row['last'];
-	$GLOBALS[ 'PasswdChanged' ] = $row['pwdchanged'];
-	$GLOBALS[ 'UserVerified' ] = 1;
-	$GLOBALS[ 'gUserName' ] = $row['username'];
-	$GLOBALS[ 'gLastLogin' ] = $row['lastlogin'];
-	$GLOBALS[ 'gActive' ] = $row['active'];
-	
+
+	$query = "SELECT * from `users` WHERE `id` = '$userid'";
+	DoQuery( $query, $gDbControl );
+	$gUser = mysql_fetch_assoc( $gResult );
+	$gUserId = $gUser['id'];
+	$gUserVerified = 1;
+/*	
 	$query = "select privileges.level, privileges.enabled from privileges, access ";
 	$query .= " where access.privid = privileges.id and access.userid = '$userid'";
-	DoQuery( $query );
+	DoQuery( $query, $gDbControl );
 	list( $priv, $enabled ) = mysql_fetch_array( $local_result );
 	$GLOBALS['gAccessLevel'] = $priv;
 	$GLOBALS['gEnabled'] = $enabled;
 	$_SESSION['username'] = $row['username'];
-
+*/
 	if( $gTrace ) array_pop( $gFunction );
 }
 
@@ -579,7 +566,7 @@ END;
 </tr>
 <tr>
 	<td>Password:</td>
-	<td><input type="password" name="userpass" id="userpass" tabindex=2 value="" size="16" onkeydown="MyKeyDown(event);"></td>
+	<td><input type="password" name="password" id="password" tabindex=2 value="" size="16" onkeydown="MyKeyDown(event);"></td>
 END;
 	if( ! empty( $gMessage2 ) ) { echo "<td class=msg>" . $gMessage2 . "</td>"; }
 	
@@ -612,10 +599,6 @@ function UserManagerLogout() {
 		Logger();
 	}
 	SessionStuff( 'logout' );
-	echo "<h3>You have been sucessfully logged out</h3>";
-?>
-<input type=submit name=action value=Continue>
-<?php
 }
 
 function UserManagerPassword() {
@@ -625,9 +608,9 @@ function UserManagerPassword() {
 		Logger();
 	}
 	
-	$id = $GLOBALS['gUserId'];
-	DoQuery( "select username from users where userid = '$id'" );
-	list( $username ) = mysql_fetch_array( $local_result );
+	$id = $gUserId;
+	DoQuery( "select username from users where id = '$id'", $gDbControl );
+	list( $username ) = mysql_fetch_array( $gResult );
 	$disabled = empty( $username ) ? "" : "disabled";
 
 	echo <<<END
@@ -653,11 +636,11 @@ The UPDATE button will be activated once your password, entered twice, has been 
 </tr>
 <tr>
 	<th class=norm>Password
-	<td class=norm><input type=password name=newpassword1 id=newpassword1 onKeyUp="verifypwd(1);" value="oneoneone" size=20>
+	<td class=norm><input type=password name=newpassword1 id=newpassword1 onKeyUp="MyVerifyPwd(1);" value="oneoneone" size=20>
 </tr>
 <tr>
 	<th class=norm>One more time
-	<td class=norm><input type=password name=newpassword2 id=newpassword2 onKeyUp="verifypwd(2);" value="twotwotwo" size=20>
+	<td class=norm><input type=password name=newpassword2 id=newpassword2 onKeyUp="MyVerifyPwd(2);" value="twotwotwo" size=20>
 </tr>
 </table>
 <br>
@@ -666,9 +649,9 @@ The UPDATE button will be activated once your password, entered twice, has been 
 END;
 
 	$acts = array();
-	$acts[] = "mungepwd()";
-	$acts[] = "setValue('area','new_pass')";
-	$acts[] = "addAction('Update')";
+	$acts[] = "MyMungePwd()";
+	$acts[] = "MySetValue('area','new_pass')";
+	$acts[] = "MyAddAction('Update')";
 	$click = "onClick=\"" . join(';',$acts ) . "\"";
 ?>
 <input type=button id=userSettingsUpdate name=userSettingsUpdate disabled <?php echo $click ?> value=Update></th>
@@ -690,14 +673,14 @@ function UserManagerPrivileges()
 <input type=hidden name=userid id=userid>
 <?php
 		  $acts = array();
-		  $acts[] = "setValue('func','display')";
-		  $acts[] = "addAction('Back')";
+		  $acts[] = "MySetValue('func','display')";
+		  $acts[] = "MyAddAction('Back')";
 		  echo sprintf( "<input type=button onClick=\"%s\" value=Back>", join(';',$acts ) );
 
 		  $acts = array();
-		  $acts[] = "setValue('area','privileges')";
-		  $acts[] = "setValue('func','modify')";
-		  $acts[] = "addAction('Update')";
+		  $acts[] = "MySetValue('area','privileges')";
+		  $acts[] = "MySetValue('func','modify')";
+		  $acts[] = "MyAddAction('Update')";
 		  echo sprintf( "<input type=button onClick=\"%s\" id=update value=Update>", join(';',$acts ) );
 
 	echo "<br><br>";
@@ -723,9 +706,9 @@ function UserManagerPrivileges()
 		echo "<td class=c><input type=checkbox name=p_${id}_enabled $jscript value=1 $checked></td>";
 
 		$acts = array();
-		$acts[] = "setValue('area','privileges')";
-		$acts[] = "setValue('func','delete')";
-		$acts[] = "setValue('id','$id')";
+		$acts[] = "MySetValue('area','privileges')";
+		$acts[] = "MySetValue('func','delete')";
+		$acts[] = "MySetValue('id','$id')";
 		$acts[] = "myConfirm('Update')";
 		echo sprintf( "<td class=c><input type=button onClick=\"%s\" value=Del></td>", join(';',$acts ) );
 
@@ -739,10 +722,10 @@ function UserManagerPrivileges()
 	echo "<td class=c><input type=checkbox name=p_${id}_enabled $jscript value=1 ></td>";
 
 	$acts = array();
-	$acts[] = "setValue('area','privileges')";
-	$acts[] = "setValue('func','add')";
-	$acts[] = "setValue('id','$id')";
-	$acts[] = "addAction('Update')";
+	$acts[] = "MySetValue('area','privileges')";
+	$acts[] = "MySetValue('func','add')";
+	$acts[] = "MySetValue('id','$id')";
+	$acts[] = "MyAddAction('Update')";
 	echo sprintf( "<td><input type=button onClick=\"%s\" value=Add></td>", join(';',$acts ) );
 
 	echo "</tr>";
@@ -828,7 +811,7 @@ function UserManagerReport()
 	
 	echo "<tr>";
 	echo "<td colspan=2>&nbsp;</td>";
-	echo "<td><input type=button name=action value=Mail onclick=\"addAction('Mail');\"></td>";
+	echo "<td><input type=button name=action value=Mail onclick=\"MyAddAction('Mail');\"></td>";
 	echo "<td><input type=button id=btn_all_email name=btn_all_email value=All onclick=\"javascript:toggleEmail('all');\"></td>";
 	echo "<td colspan=2>&nbsp;</td>";
 	echo "</tr>";
@@ -852,9 +835,9 @@ function UserManagerResend()
 	
 	if( ! empty( $email ) ) DoQuery( "select * from users where email = '$email'", $gDbControl );
 
-	if( $gNumRows > 0 ) {
+	if( $gNumRows ) {
 		$user = mysql_fetch_assoc( $gResult );
-		$userid = $user['userid'];
+		$userid = $user['id'];
 		
 		$str = mt_rand();
 		$new_password = substr( SHA256::hash( $str ), 0, 6 );
@@ -862,7 +845,7 @@ function UserManagerResend()
 		$opts[] = "password = '$new_password'";
 		$opts[] = "pwdchanged = '0000-00-00 00:00:00'";
 		$opts[] = sprintf( "pwdexpires = '%s'", date( 'Y-m-d H:i:s', time() + 60*10 ) );
-		$query = "update users set " . join( ',', $opts ) . " WHERE userid = '$userid'";
+		$query = "update users set " . join( ',', $opts ) . " WHERE id = '$userid'";
 		DoQuery( $query, $gDbControl );
 		
 		$uri = sprintf( "http://%s%s", $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI']);
@@ -1044,7 +1027,7 @@ function UserManagerSettings()
 	
 	echo "<tr>";
 	echo "<th></th>";
-	echo "<th align=center><input type=button class=btn id=userSettingsUpdate name=action onClick=\"mungepwd(); setValue( 'userid', '$userid'); addAction('Update');\" value=Update></th>";
+	echo "<th align=center><input type=button class=btn id=userSettingsUpdate name=action onClick=\"MyMungePwd(); MySetValue( 'userid', '$userid'); MyAddAction('Update');\" value=Update></th>";
 	echo "<th></th>";
 	echo "</tr>";
 	
@@ -1068,8 +1051,8 @@ function UserManagerUpdate()
 	}
 
 	$id = $_POST[ 'id' ];
-	if( ! isset( $GLOBALS['gUserId']) ) {
-		$GLOBALS['gUserId'] = $id;
+	if( empty( $gUserId ) ) {
+		$gUserId = $id;
 		$_SESSION['userid'] = $id;
 	}
 	
@@ -1078,16 +1061,16 @@ function UserManagerUpdate()
 	if( ! empty( $_POST[ 'update_pass' ] ) )
 	{
 		$newpwd = $_POST[ 'newpassword1' ];
-		$query = "update users set pwdchanged = now(), password = '$newpwd' where userid = '$id'";
+		$query = "update users set pwdchanged = now(), password = '$newpwd' where id = '$id'";
 		DoQuery( $query );
 		$gPasswdChanged = date( "Y-m-d H:i:s" );
 		unset( $text );
 		$text[] = "insert event_log set time=now()";
 		$text[] = "type = 'pwd change'";
-		$text[] = "userid = '$userid'";
+		$text[] = "id = '$userid'";
 		$text[] = "item = 'n/a'";
 		$query = join( ",", $text );
-		DoQuery( $query );
+		DoQuery( $query, $gDbControl );
 		
 		$GLOBALS['gAction'] = 'Main';
 	}
@@ -1106,7 +1089,7 @@ function UserManagerUpdate()
 		$acts[] = sprintf( "password = '%s'", md5( sprintf( "%d", time())));
 		$acts[] = sprintf( "active = '1'" );
 		$query = "insert into users set " . join(',', $acts );
-		DoQuery( $query );
+		DoQuery( $query, $gDbControl );
 		$uid = mysql_insert_id();
 		
 		$text = array();
@@ -1223,7 +1206,7 @@ function UserManagerUpdate()
 						$text[] = "userid = '$userid'";
 						$text[] = sprintf( "item = 'update %s(%d), set %s'", $row['name'], $pid, addslashes( join(',', $acts ) ) );
 						$query = join( ',', $text );
-						DoQuery( $query );
+						DoQuery( $query, $gDbControl );
 					}
 				}
 			}
@@ -1395,7 +1378,7 @@ function UserManagerVerify() {
 			return;
 		}
 		
-		if( !isset( $_POST[ 'userpass' ] ) || $_POST['userpass'] == "empty" )
+		if( !isset( $_POST[ 'password' ] ) || $_POST['password'] == "empty" )
 		{
 			$gMessage2 = "&nbsp;** Please enter your password";
 			if( $gTrace ) array_pop( $gFunction );
@@ -1407,18 +1390,19 @@ function UserManagerVerify() {
 		DoQuery( $query, $gDbControl );
 		$c_array = mysql_fetch_assoc( $gResult );
 		if( empty( $_POST['username'] ) ) {
-			$query = "select userid, username, password from users where password = '" . $_POST['response'] . "'";
+			$query = "select id, username, password from users where password = '" . $_POST['response'] . "'";
 			DoQuery( $query, $gDbControl );
 			$ok = $gNumRows > 0;
 			if( $ok )
 			{
 				$user = mysql_fetch_assoc( $gResult );
-				UserManager( 'load', $user['userid'] );
+				UserManager( 'load', $user['id'] );
 				UserManager( 'newpassword' );
 			}
 			
 		} else {
-			$query = "select userid, username, password, pwdexpires from users where username = '" . $_POST['username'] . "'";
+			$uname = trim($_POST['username']);
+			$query = "select id, username, password, pwdexpires from users where username = '$uname'";
 			DoQuery( $query, $gDbControl );
 			if( $gNumRows > 0 ) {
 				$now = date( 'Y-m-d H:i:s' );
@@ -1430,6 +1414,8 @@ function UserManagerVerify() {
 				if( $now > $user['pwdexpires'] ) {
 					$gMessage2 = "Your password has expired!  Click on:  Reset Password";
 					$ok = 0;
+				} else {
+					Logger("good, ok: $ok");
 				}
 				if( ! $ok ) {
 					$gMessage2 = "&nbsp;** Invalid password.  Please try again or press Reset Password";
@@ -1443,22 +1429,19 @@ function UserManagerVerify() {
 		if( $ok > 0 )
 		{
 			$_SESSION['authenticated'] = 1;
-			$_SESSION['userid'] = $user['userid'];
+			$_SESSION['userid'] = $user['id'];
 			
-			UserManager( 'load', $user['userid'] );
+			UserManager( 'load', $user['id'] );
 			$ts = time();
 			$expires = date( 'Y-m-d H:i:s', $ts + 60*60*24*60 ); # two months
-			DoQuery( "update users set lastlogin = now(), pwdexpires='$expires' where userid = '" . $user['userid'] . "'", $gDbControl );
+			DoQuery( "update users set lastlogin = now(), pwdexpires='$expires' where id = '" . $user['id'] . "'", $gDbControl );
 			$text = array();
 			$text[] = "insert event_log set time=now()";
 			$text[] = "type = 'login'";
-			$text[] = sprintf( "userid = '%d'", $user['userid'] );
+			$text[] = sprintf( "id = '%d'", $user['id'] );
 			$text[] = sprintf( "item = '%s'", $_SERVER[ 'HTTP_USER_AGENT' ] );
 			$query = join( ",", $text );
-			DoQuery( $query );
-			if( $GLOBALS[ 'PasswdChanged' ] == '0000-00-00 00:00:00' ) {
-				UserManagerPassword();
-			}
+			DoQuery( $query, $gDbControl );
 			$gAction = ( empty( $GLOBALS['gEnabled'] ) || empty( $GLOBALS['gActive'] ) ) ? "Inactive" : "Welcome";
 		}
 		else
@@ -1466,7 +1449,7 @@ function UserManagerVerify() {
 			$local_numrows = 0;
 			if( ! empty( $_POST[ 'username' ] ) )
 			{
-				$query = "select userid from users where username = '" . $_POST['username'] . "'";
+				$query = "select id from users where username = '$uname'";
 				DoQuery( $query, $gDbControl );
 				if( $gNumRows == 0 ) {
 #					$gMessage1 = "&nbsp;** Invalid username: " . $_POST['username'];  Don't give away information

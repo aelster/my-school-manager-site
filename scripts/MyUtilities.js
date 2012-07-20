@@ -15,7 +15,7 @@ function MyAddField(id) {
    }
 }
 function MyChallengeResponse() {
-   var up = document.getElementById("userpass");
+   var up = document.getElementById("password");
    if (up.value.length == 64) {
       document.getElementById("bypass").value = "1";
       document.fMain.response.value = up.value;
@@ -63,7 +63,7 @@ function MyGetPassword(e) {
       keynum = e.which;
    }
    if (keynum == 13) {
-      var f = document.getElementById('userpass');
+      var f = document.getElementById('password');
       f.focus();
    }
 }
@@ -79,5 +79,34 @@ function MyKeyDown(e) {
    }
    if (keynum == 13) {
       MyChallengeResponse();
+   }
+}
+
+function MyMungePwd() {
+   var p1 = document.getElementById("newpassword1");
+   var p2 = document.getElementById("newpassword2");
+   p1.value = sha256_digest(p1.value);
+   p2.value = "";
+}
+
+function MySetValue(id, val) {
+   e = document.getElementById(id);
+   if (!e) alert("Can't find id " + id);
+   e.value = val;
+}
+
+function MyVerifyPwd() {
+   var p1 = document.getElementById("newpassword1");
+   var p2 = document.getElementById("newpassword2");
+   var btn = document.getElementById("userSettingsUpdate");
+   var txt = document.getElementById("pwdval");
+   if (p1.value != p2.value) {
+      btn.disabled = true;
+      btn.style.backgroundColor = '#ff0000';
+      if (txt) txt.innerHTML = "** Passwords Don't Match **";
+   } else {
+      btn.disabled = false;
+      btn.style.backgroundColor = '#90EE90';
+      if (txt) txt.innerHTML = "";
    }
 }

@@ -50,7 +50,7 @@ function SessionStuff( $cmd )
 			$text[] = sprintf( "userid = '%d'", $GLOBALS['gUserId'] );
 			$text[] = sprintf( "item = 'session_id: %s'", session_id() );
 			$query = join( ",", $text );
-			DoQuery( $query );
+			DoQuery( $query, $gDbControl );
 			foreach( array( 'authenticated', 'userid', 'username' ) as $key ) {
 				unset( $_SESSION[ $key ] );
 			}
