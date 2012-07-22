@@ -30,6 +30,10 @@ function UserManager() {
 			UserManagerInactive();
 			break;
 			
+		case( 'levels' ):
+			UserManagerLevels();
+			break;
+		
 		case( 'load' ):
 			UserManagerLoad( func_get_arg( 1 ) );
 			break;
@@ -44,10 +48,6 @@ function UserManager() {
 
 		case( 'newpassword' ):
 			UserManagerPassword();
-			break;
-		
-		case( 'privileges' ):
-			UserManagerPrivileges();
 			break;
 		
 		case( 'report' ):
@@ -650,26 +650,27 @@ END;
 
 	$acts = array();
 	$acts[] = "MyMungePwd()";
-	$acts[] = "MySetValue('area','new_pass')";
+	$acts[] = "MySetValue('area','newpass')";
 	$acts[] = "MyAddAction('Update')";
 	$click = "onClick=\"" . join(';',$acts ) . "\"";
 ?>
 <input type=button id=userSettingsUpdate name=userSettingsUpdate disabled <?php echo $click ?> value=Update></th>
+<script type="text/javascript">MySetFocus('newpassword1');</script>
 <?php
 	if( $gTrace ) array_pop( $gFunction );
 	exit;
 }
 
-function UserManagerPrivileges()
+function UserManagerLevels()
 {
 	include( "globals.php" );
 	if( $gTrace ) {
-		$gFunction[] = "UserManagerPrivileges()";
+		$gFunction[] = "UserManagerLevels()";
 		Logger();
 	}
 ?>
-<h2>Privilege Control</h2>
-<input type=hidden name=from value=UserManagerPrivileges>
+<h2>Level Control</h2>
+<input type=hidden name=from value=UserManagerLevels>
 <input type=hidden name=userid id=userid>
 <?php
 		  $acts = array();
@@ -678,7 +679,7 @@ function UserManagerPrivileges()
 		  echo sprintf( "<input type=button onClick=\"%s\" value=Back>", join(';',$acts ) );
 
 		  $acts = array();
-		  $acts[] = "MySetValue('area','privileges')";
+		  $acts[] = "MySetValue('area','levels')";
 		  $acts[] = "MySetValue('func','modify')";
 		  $acts[] = "MyAddAction('Update')";
 		  echo sprintf( "<input type=button onClick=\"%s\" id=update value=Update>", join(';',$acts ) );
@@ -694,8 +695,8 @@ function UserManagerPrivileges()
 	echo "<th>Actions</ht>";
 	echo "</tr>";
 
-	DoQuery( "select * from privileges order by level desc" );	
-	while( $row = mysql_fetch_assoc( $local_result ) )
+	DoQuery( "select * from access_levels order by level desc", $gDbControl );	
+	while( $row = mysql_fetch_assoc( $gResult ) )
 	{
 		$id = $row['id'];
 		$jscript = "onChange=\"addField('$id');toggleBgRed('update');\"";
@@ -706,7 +707,7 @@ function UserManagerPrivileges()
 		echo "<td class=c><input type=checkbox name=p_${id}_enabled $jscript value=1 $checked></td>";
 
 		$acts = array();
-		$acts[] = "MySetValue('area','privileges')";
+		$acts[] = "MySetValue('area','levels')";
 		$acts[] = "MySetValue('func','delete')";
 		$acts[] = "MySetValue('id','$id')";
 		$acts[] = "myConfirm('Update')";
@@ -722,11 +723,11 @@ function UserManagerPrivileges()
 	echo "<td class=c><input type=checkbox name=p_${id}_enabled $jscript value=1 ></td>";
 
 	$acts = array();
-	$acts[] = "MySetValue('area','privileges')";
+	$acts[] = "MySetValue('area','levels')";
 	$acts[] = "MySetValue('func','add')";
 	$acts[] = "MySetValue('id','$id')";
 	$acts[] = "MyAddAction('Update')";
-	echo sprintf( "<td><input type=button onClick=\"%s\" value=Add></td>", join(';',$acts ) );
+	echo sprintf( "<td class=c><input type=button onClick=\"%s\" value=Add></td>", join(';',$acts ) );
 
 	echo "</tr>";
 	echo "</table>";
@@ -873,12 +874,16 @@ function UserManagerResend()
 			$to = $from;
 		}
 		$subject = "Password Reset";
-		$message = Swift_Message::newInstance( $subject );
-		$message->setTo( $to );
-		$message->setFrom( $from );
-		$message->setBody( join( "\n", $body ), 'text/plain' );
-		MyMail( $message );
-
+		
+		if( $gSiteName == 'MacBook Pro' ) {
+			echo join('<br>', $body );
+		} else {
+			$message = Swift_Message::newInstance( $subject );
+			$message->setTo( $to );
+			$message->setFrom( $from );
+			$message->setBody( join( "\n", $body ), 'text/plain' );
+			MyMail( $message );
+		}
 		echo "A reset link has been sent to $email";
 	} else {
 		echo "No user with that e-mail";
@@ -1062,12 +1067,12 @@ function UserManagerUpdate()
 	{
 		$newpwd = $_POST[ 'newpassword1' ];
 		$query = "update users set pwdchanged = now(), password = '$newpwd' where id = '$id'";
-		DoQuery( $query );
+		DoQuery( $query, $gDbControl );
 		$gPasswdChanged = date( "Y-m-d H:i:s" );
 		unset( $text );
 		$text[] = "insert event_log set time=now()";
 		$text[] = "type = 'pwd change'";
-		$text[] = "id = '$userid'";
+		$text[] = "userid = '$userid'";
 		$text[] = "item = 'n/a'";
 		$query = join( ",", $text );
 		DoQuery( $query, $gDbControl );
@@ -1222,7 +1227,7 @@ function UserManagerUpdate()
 				if( array_key_exists( $uid, $done ) ) continue;
 				$done[ $uid ] = 1;
 				$query = "select * from users where userid = '$uid'";
-				DoQuery( $query );
+				DoQuery( $query, $gDbControl );
 				$user = mysql_fetch_assoc( $local_result );
 				
 				$acts = array();
@@ -1245,7 +1250,7 @@ function UserManagerUpdate()
 		
 				if( count( $acts ) ) {
 					$query = "update users set " . join( ',', $acts ) . " where userid = '$uid'";
-					DoQuery( $query );
+					DoQuery( $query, $gDbControl );
 					if( $local_numrows == 0 ) {
 						$acts = array();
 						foreach( array( 'first','last','email','username') as $fld ) {
@@ -1253,7 +1258,7 @@ function UserManagerUpdate()
 							$acts[] = sprintf( "%s = '%s'", $fld, addslashes( $_POST[$tag] ) );
 						}
 						$query = "insert into users set " . join( ',', $acts );
-						DoQuery($query );
+						DoQuery($query, $gDbControl );
 
 						$tag = sprintf( "u_%d_%s", $uid, 'privid');
 						$acc = $_POST[$tag];
@@ -1271,7 +1276,7 @@ function UserManagerUpdate()
 					$text[] = "userid = '$userid'";
 					$text[] = sprintf( "item = 'update %s(%d), set %s'", $user['username'], $uid, addslashes( join(',', $acts ) ) );
 					$query = join( ',', $text );
-					DoQuery( $query );
+					DoQuery( $query, $gDbControl );
 				}
 				
 				$query = "select * from access where userid = '$uid'";
@@ -1438,7 +1443,7 @@ function UserManagerVerify() {
 			$text = array();
 			$text[] = "insert event_log set time=now()";
 			$text[] = "type = 'login'";
-			$text[] = sprintf( "id = '%d'", $user['id'] );
+			$text[] = sprintf( "userid = '%d'", $user['id'] );
 			$text[] = sprintf( "item = '%s'", $_SERVER[ 'HTTP_USER_AGENT' ] );
 			$query = join( ",", $text );
 			DoQuery( $query, $gDbControl );

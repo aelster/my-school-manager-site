@@ -26,3 +26,59 @@ form {
    margin-left: 180px;
    height: 100%;
 }
+
+.CommonV2 table {
+	background-color: #000000;
+	border-collapse: collapse;
+}
+
+.CommonV2 tr.sched {
+	height: 20px;
+}
+
+.CommonV2 th {
+	background-color: #addfff;
+	border: 1px solid #000000;
+	padding: 0px 5px 0px 5px;
+}
+
+.CommonV2 td {
+	background-color: #ffffff;
+	border: 1px solid #000000;
+	padding: 0px 5px 0px 5px;
+}
+
+.CommonV2 td.c {
+	background-color: #ffffff;
+	border: 1px solid #000000;
+	padding: 0px 5px 0px 5px;
+	text-align: center;
+}
+
+.CommonV2 td.cok {
+	background-color: #90ee90;
+	border: 1px solid #000000;
+	padding: 0px 5px 0px 5px;
+	text-align: center;
+}
+
+.CommonV2 td.cwarn {
+	background-color: #ffff00;
+	border: 1px solid #000000;
+	padding: 0px 5px 0px 5px;
+	text-align: center;
+}
+
+.CommonV2 td.cbad {
+	background-color: #ff0000;
+	border: 1px solid #000000;
+	padding: 0px 5px 0px 5px;
+	text-align: center;
+}
+
+.CommonV2 td.no_school {
+	background-color: #d3d3d3;
+	border: 1px solid #000000;
+	padding: 0px 5px 0px 5px;
+	text-align: center;
+}

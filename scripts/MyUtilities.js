@@ -89,6 +89,11 @@ function MyMungePwd() {
    p2.value = "";
 }
 
+function MySetFocus(id) {
+   var e = document.getElementById(id);
+   if (!e) alert("Can't find id " + id);
+   e.focus();
+}
 function MySetValue(id, val) {
    e = document.getElementById(id);
    if (!e) alert("Can't find id " + id);
