@@ -673,10 +673,6 @@ function UserManagerLevels()
 <input type=hidden name=from value=UserManagerLevels>
 <input type=hidden name=userid id=userid>
 <?php
-		  $acts = array();
-		  $acts[] = "MySetValue('func','display')";
-		  $acts[] = "MyAddAction('Back')";
-		  echo sprintf( "<input type=button onClick=\"%s\" value=Back>", join(';',$acts ) );
 
 		  $acts = array();
 		  $acts[] = "MySetValue('area','levels')";
@@ -699,7 +695,7 @@ function UserManagerLevels()
 	while( $row = mysql_fetch_assoc( $gResult ) )
 	{
 		$id = $row['id'];
-		$jscript = "onChange=\"addField('$id');toggleBgRed('update');\"";
+		$jscript = "onChange=\"MyAddField('$id');MyToggleBgRed('update');\"";
 		echo "<tr>";
 		echo "<td><input type=text size=8 name=p_${id}_name $jscript value=\"" . $row['name'] . "\"></td>";
 		echo "<td><input type=text size=8 name=p_${id}_level $jscript value=\"" . $row['level'] . "\"></td>";
@@ -710,7 +706,8 @@ function UserManagerLevels()
 		$acts[] = "MySetValue('area','levels')";
 		$acts[] = "MySetValue('func','delete')";
 		$acts[] = "MySetValue('id','$id')";
-		$acts[] = "myConfirm('Update')";
+		$str = sprintf( "Are you sure you want to delete name %s, level %d?", $row['name'], $row['level'] );
+		$acts[] = "MyConfirm('$str')";
 		echo sprintf( "<td class=c><input type=button onClick=\"%s\" value=Del></td>", join(';',$acts ) );
 
 		echo "</tr>";
@@ -1142,15 +1139,15 @@ function UserManagerUpdate()
 		}
 	}
 	
-	if( $area == "privileges" ) {
+	if( $area == "levels" ) {
 		if( $func == "add" ) {
 			$acts = array();
 			$acts[] = sprintf( "name = '%s'", addslashes( $_POST['p_0_name'] ) );
 			$acts[] = sprintf( "level = '%d'", $_POST['p_0_level'] );
 			$val = isset( $_POST['p_0_enabled'] ) ? 1 : 0;
 			$acts[] = "enabled = '$val'";
-			$query = "insert into privileges set " . join(',',$acts );
-			DoQuery( $query );
+			$query = "insert into access_levels set " . join(',',$acts );
+			DoQuery( $query, $gDbControl );
 			$id = mysql_insert_id();
 			
 			$text = array();
@@ -1159,16 +1156,16 @@ function UserManagerUpdate()
 			$text[] = "userid = '$userid'";
 			$text[] = sprintf( "item = 'add %s'", $_POST['p_0_name'], $id );
 			$query = join( ',', $text );
-			DoQuery( $query );
+			DoQuery( $query, $gDbControl );
 		}
 		
 		if( $func == "delete" ) {
 			$id = $_POST['id'];
-			DoQuery( "select * from privileges where id = '$id'");
-			$row = mysql_fetch_assoc( $local_result );
+			DoQuery( "select * from access_levels where id = '$id'", $gDbControl );
+			$row = mysql_fetch_assoc( $gResult);
 			
-			$query = "delete from privileges where id = '$id'";
-			DoQuery( $query );
+			$query = "delete from access_levels where id = '$id'";
+			DoQuery( $query, $gDbControl );
 			
 			$text = array();
 			$text[] = "insert event_log set time=now()";
@@ -1176,7 +1173,7 @@ function UserManagerUpdate()
 			$text[] = "userid = '$userid'";
 			$text[] = sprintf( "item = 'delete %s'", $row['name'], $id );
 			$query = join( ',', $text );
-			DoQuery( $query );
+			DoQuery( $query, $gDbControl );
 		}
 		
 		if( $func == "modify" ) {
@@ -1186,9 +1183,9 @@ function UserManagerUpdate()
 				if( ! empty( $pid ) ) {
 					if( array_key_exists( $pid, $done ) ) continue;
 					$done[$pid] = 1;
-					$query = "select * from privileges where id = '$pid'";
-					DoQuery( $query );
-					$row = mysql_fetch_assoc( $local_result );
+					$query = "select * from access_levels where id = '$pid'";
+					DoQuery( $query, $gDbControl );
+					$row = mysql_fetch_assoc( $gResult );
 					$acts = array();
 					
 					$tag = "p_${pid}_name";
@@ -1202,8 +1199,8 @@ function UserManagerUpdate()
 					if( $val !== $row['enabled'] ) $acts[] = "enabled = '$val'";
 					
 					if( count( $acts ) ) {
-						$query = "update privileges set " . join( ',', $acts ) . " where id = '$pid'";
-						DoQuery( $query );
+						$query = "update access_levels set " . join( ',', $acts ) . " where id = '$pid'";
+						DoQuery( $query, $gDbControl );
 						
 						$text = array();
 						$text[] = "insert event_log set time=now()";

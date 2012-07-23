@@ -29,6 +29,13 @@ function MyChallengeResponse() {
    return false;
 }
 
+function MyConfirm(prompt) {
+   var response = confirm(prompt);
+   if (response) {
+      MyAddAction('Update');
+   }
+}
+
 function MyCreateDebugWindow() {
    window.top.debugWindow =
    window.open("",
@@ -98,6 +105,16 @@ function MySetValue(id, val) {
    e = document.getElementById(id);
    if (!e) alert("Can't find id " + id);
    e.value = val;
+}
+
+function MyToggleBgRed(id) {
+   var e = document.getElementById(id);
+   if (!e) alert("Can't find id: " + id);
+   if (e.style.backgroundColor == '#ff0000') {
+      e.style.backgroundColor = '#ffffff';
+   } else {
+      e.style.backgroundColor = '#ff0000';
+   }
 }
 
 function MyVerifyPwd() {
