@@ -229,10 +229,6 @@ function UserManagerDisplay()
 	echo sprintf( "<input type=hidden name=userid value='%d'>", $GLOBALS['gUserId'] );
 
 	$acts = array();
-	$acts[] = "MyAddAction('Back')";
-	echo sprintf( "<input type=button onClick=\"%s\" value=Back>", join(';',$acts ) );
-
-	$acts = array();
 	$acts[] = "MySetValue('area','update')";
 	$acts[] = "MySetValue('id', '" . $GLOBALS['gUserId'] . "')";
 	$acts[] = "MyAddAction('Update')";
@@ -599,6 +595,7 @@ function UserManagerLogout() {
 		Logger();
 	}
 	SessionStuff( 'logout' );
+	SessionStuff('start');
 }
 
 function UserManagerPassword() {
