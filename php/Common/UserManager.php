@@ -147,7 +147,7 @@ function UserManagerAuthorized( $privilege )
 		$gFunction[] = "UserManagerAuthorized($privilege)";
 		Logger();
 	}
-	$level = $GLOBALS['gAccessLevel'];
+	$level = $gAccessLevel;
 	$ok = ( $level >= $gAccessNameToLevel[ $privilege ] ) ? 1 : 0;
 	$ok = $ok && $gAccessLevelEnabled[ $level ];
 	
@@ -234,89 +234,68 @@ function UserManagerDisplay()
 	$acts[] = "MyAddAction('Update')";
 	echo sprintf( "<input type=button onClick=\"%s\" id=update value=Update>", join(';',$acts ) );
 	
-	$vprivs = array();
-	$vlevels = array();
-	DoQuery( "select name, id, level from privileges order by level desc" );
-	while( list( $name, $id, $level ) = mysql_fetch_array( $local_result ) )
-	{
-		$vprivs[ $name ] = $id;
-		$vlevels[ $name ] = $level;
+	if( ! UserManagerAuthorized('control') ) continue;
+	$i = 0;
+
+	$pid = $gAccessNameToId[ $level ];
+	$query = "select * from users, access where";
+	$query .= " users.userid = access.userid and access.privid = '$pid' order by users.username ASC";
+	DoQuery( $query );
+	
+	if( $local_numrows ) {
+		echo "<h3>" . $level. "</h3>";
+
+		echo "<table class=sortable>";
+		echo "<tr>";
+		echo "<th>#</th>";
+		echo "<th>Username</th>";
+		echo "<th>First</th>";
+		echo "<th>Last</th>";
+		echo "<th>E-Mail</th>";
+		echo "<th>Last Login</th>";
+		echo "<th>Active</th>";
+		echo "<th>Actions</th>";
+		echo "</tr>";
 	}
 	
-	foreach( $gAccessLevels as $level )
+	$j = 1;
+	while( $user = mysql_fetch_assoc( $local_result ) )
 	{
-		if( ! UserManagerAuthorized($level) ) continue;
-		$i = 0;
-	
-		$pid = $gAccessNameToId[ $level ];
-		$query = "select * from users, access where";
-		$query .= " users.userid = access.userid and access.privid = '$pid' order by users.username ASC";
-		DoQuery( $query );
+		$id = $user['userid'];
+		$jscript = "onChange=\"addField('$id');toggleBgRed('update');\"";
 		
-		if( $local_numrows ) {
-			echo "<h3>" . $level. "</h3>";
+		echo "<tr>";
+		printf( "<td class=sorttable_nosort>$j</td>" );
+		echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_username value=\"%s\" $jscript size=10></td>\n", $user['username'], $id, $user['username']);
+		echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_first value=\"%s\" $jscript size=10></td>\n", $user['first'], $id, $user['first']);
+		echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_last value=\"%s\" $jscript size=10></td>\n", $user['last'], $id, $user['last']);
+		echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_email value=\"%s\" $jscript size=20></td>\n", $user['email'], $id, $user['email']);
 
-			echo "<table class=sortable>";
-			echo "<tr>";
-			echo "<th>#</th>";
-			echo "<th>Username</th>";
-			echo "<th>First</th>";
-			echo "<th>Last</th>";
-			echo "<th>E-Mail</th>";
-			echo "<th>Access</th>";
-			echo "<th>Last Login</th>";
-			echo "<th>Active</th>";
-			echo "<th>Actions</th>";
-			echo "</tr>";
+		if( $user['lastlogin'] == '0000-00-00 00:00:00' )
+			$str = "never";
+		else {
+			$diff = time() - strtotime( $user['lastlogin'] );
+			$days = $diff / 60 / 60 / 24;
+			$str = sprintf( "%d days ago", $days );
 		}
-		
-		$j = 1;
-		while( $user = mysql_fetch_assoc( $local_result ) )
-		{
-			$id = $user['userid'];
-			$jscript = "onChange=\"addField('$id');toggleBgRed('update');\"";
-			
-			echo "<tr>";
-			printf( "<td class=sorttable_nosort>$j</td>" );
-			echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_username value=\"%s\" $jscript size=10></td>\n", $user['username'], $id, $user['username']);
-			echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_first value=\"%s\" $jscript size=10></td>\n", $user['first'], $id, $user['first']);
-			echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_last value=\"%s\" $jscript size=10></td>\n", $user['last'], $id, $user['last']);
-			echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_email value=\"%s\" $jscript size=20></td>\n", $user['email'], $id, $user['email']);
+		echo "<td align=center>$str</td>";
 
-			echo sprintf( "<td><select name=u_%d_privid $jscript>", $id );
-			foreach( $vprivs as $name => $privid )
-			{
-				if( $vlevels[$name] > $GLOBALS['gAccessLevel'] ) continue;
-				$opt = ( $user['PrivId'] == $privid ) ? 'selected' : '';
-				echo "<option value=$privid $opt>$name</option>";
-			}
-			echo "</select></td>";
+		$checked = $user['active'] ? "checked" : "";
+		printf( "<td class=c><input type=checkbox name=u_%d_active value=1 $checked $jscript ></td>\n", $id );
 
-			if( $user['lastlogin'] == '0000-00-00 00:00:00' )
-				$str = "never";
-			else {
-				$diff = time() - strtotime( $user['lastlogin'] );
-				$days = $diff / 60 / 60 / 24;
-				$str = sprintf( "%d days ago", $days );
-			}
-			echo "<td align=center>$str</td>";
+		echo "<td>";
+		$acts = array();
+		$acts[] = "MySetValue('area','delete')";
+		$acts[] = "MySetValue('id', '$id')";
+		$name = sprintf( "%s %s", $user['first'], $user['last'] );
+		$acts[] = "myConfirm('Are you sure you want to delete $name')";
+		echo sprintf( "<input type=button onClick=\"%s\" id=update value=Del>", join(';',$acts ) );
 
-			$checked = $user['active'] ? "checked" : "";
-			printf( "<td class=c><input type=checkbox name=u_%d_active value=1 $checked $jscript ></td>\n", $id );
-
-			echo "<td>";
-			$acts = array();
-			$acts[] = "MySetValue('area','delete')";
-			$acts[] = "MySetValue('id', '$id')";
-			$name = sprintf( "%s %s", $user['first'], $user['last'] );
-			$acts[] = "myConfirm('Are you sure you want to delete $name')";
-			echo sprintf( "<input type=button onClick=\"%s\" id=update value=Del>", join(';',$acts ) );
-	
-			echo "</tr>";
-			$j++;
-		}
-		if( $local_numrows ) echo "</table>";
+		echo "</tr>";
+		$j++;
 	}
+	if( $local_numrows ) echo "</table>";
+
 	echo "<h3>New Member</h3>";
 
 	echo "<table>";
@@ -487,7 +466,7 @@ function UserManagerInit()
 	$gAccessLevelEnabled = array();
 	$gAccessLevels = array();
 	
-	$query = "select * from access_levels order by level desc";
+	$query = "select * from levels order by level desc";
 	DoQuery( $query, $gDbControl );
 	while( $row = mysql_fetch_assoc( $gResult ) ) {
 		$name = $row['name'];
@@ -688,7 +667,7 @@ function UserManagerLevels()
 	echo "<th>Actions</ht>";
 	echo "</tr>";
 
-	DoQuery( "select * from access_levels order by level desc", $gDbControl );	
+	DoQuery( "select * from levels order by level desc", $gDbControl );	
 	while( $row = mysql_fetch_assoc( $gResult ) )
 	{
 		$id = $row['id'];
@@ -1143,7 +1122,7 @@ function UserManagerUpdate()
 			$acts[] = sprintf( "level = '%d'", $_POST['p_0_level'] );
 			$val = isset( $_POST['p_0_enabled'] ) ? 1 : 0;
 			$acts[] = "enabled = '$val'";
-			$query = "insert into access_levels set " . join(',',$acts );
+			$query = "insert into levels set " . join(',',$acts );
 			DoQuery( $query, $gDbControl );
 			$id = mysql_insert_id();
 			
@@ -1158,10 +1137,10 @@ function UserManagerUpdate()
 		
 		if( $func == "delete" ) {
 			$id = $_POST['id'];
-			DoQuery( "select * from access_levels where id = '$id'", $gDbControl );
+			DoQuery( "select * from levels where id = '$id'", $gDbControl );
 			$row = mysql_fetch_assoc( $gResult);
 			
-			$query = "delete from access_levels where id = '$id'";
+			$query = "delete from levels where id = '$id'";
 			DoQuery( $query, $gDbControl );
 			
 			$text = array();
@@ -1180,7 +1159,7 @@ function UserManagerUpdate()
 				if( ! empty( $pid ) ) {
 					if( array_key_exists( $pid, $done ) ) continue;
 					$done[$pid] = 1;
-					$query = "select * from access_levels where id = '$pid'";
+					$query = "select * from levels where id = '$pid'";
 					DoQuery( $query, $gDbControl );
 					$row = mysql_fetch_assoc( $gResult );
 					$acts = array();
@@ -1196,7 +1175,7 @@ function UserManagerUpdate()
 					if( $val !== $row['enabled'] ) $acts[] = "enabled = '$val'";
 					
 					if( count( $acts ) ) {
-						$query = "update access_levels set " . join( ',', $acts ) . " where id = '$pid'";
+						$query = "update levels set " . join( ',', $acts ) . " where id = '$pid'";
 						DoQuery( $query, $gDbControl );
 						
 						$text = array();
