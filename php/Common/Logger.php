@@ -11,7 +11,6 @@ function Logger () {
 <script type="text/javascript">
 MyDebug('$tstr');
 </script>
-
 END;
 }
 ?>
