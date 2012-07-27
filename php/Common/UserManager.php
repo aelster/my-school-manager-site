@@ -147,9 +147,10 @@ function UserManagerAuthorized( $privilege )
 		$gFunction[] = "UserManagerAuthorized($privilege)";
 		Logger();
 	}
-	$level = $gAccessLevel;
-	$ok = ( $level >= $gAccessNameToLevel[ $privilege ] ) ? 1 : 0;
-	$ok = $ok && $gAccessLevelEnabled[ $level ];
+	$level = $gLevelNameToVal[$privilege];
+	Logger("checking privilege $privilege ($level), gLevel: $gLevel" );
+	$ok = ( $level <= $gLevel ) ? 1 : 0;
+	Logger( "OK: $ok" );
 	
 	if( $gTrace ) array_pop( $gFunction );
 	return $ok;
@@ -460,21 +461,17 @@ function UserManagerInit()
 		Logger();
 	}
 	
-	$gAccessNameToId = array();
-	$gAccessNameToLevel = array();
-	$gAccessNameEnabled = array();
-	$gAccessLevelEnabled = array();
-	$gAccessLevels = array();
+	$gLevels = array();
 	
 	$query = "select * from levels order by level desc";
 	DoQuery( $query, $gDbControl );
 	while( $row = mysql_fetch_assoc( $gResult ) ) {
-		$name = $row['name'];
-		$gAccessNameToId[$name] = $row[ 'id' ];
-		$gAccessNameToLevel[$name] = $row[ 'level' ];
-		$gAccessNameEnabled[$name] = $row[ 'enabled' ];
-		$gAccessLevelEnabled[ $row[ 'level' ] ] = $row[ 'enabled' ];
-		$gAccessLevels[] = $name;
+		$id = $row['id'];
+		$level = $row['level'];
+		$gLevels[$id] = $row;
+		$gLevelIdToLevel[$id] = $level;
+		$gLevelToName[$level] = $row['name'];
+		$gLevelNameToVal[$row['name']] = $level;
 	}
 	if( $gTrace) array_pop( $gFunction );
 }
@@ -492,15 +489,11 @@ function UserManagerLoad( $userid )
 	$gUser = mysql_fetch_assoc( $gResult );
 	$gUserId = $gUser['id'];
 	$gUserVerified = 1;
-/*	
-	$query = "select privileges.level, privileges.enabled from privileges, access ";
-	$query .= " where access.privid = privileges.id and access.userid = '$userid'";
-	DoQuery( $query, $gDbControl );
-	list( $priv, $enabled ) = mysql_fetch_array( $local_result );
-	$GLOBALS['gAccessLevel'] = $priv;
-	$GLOBALS['gEnabled'] = $enabled;
-	$_SESSION['username'] = $row['username'];
-*/
+	
+	DoQuery( "select levelId, enabled from user_privileges where id = '$gUserId'", $gDbControl );
+	list( $levelId, $gUserEnabled ) = mysql_fetch_array( $gResult );
+	Logger("levelId: $levelId");
+	$gLevel = $gLevelIdToLevel[$levelId];
 	if( $gTrace ) array_pop( $gFunction );
 }
 
@@ -1345,7 +1338,7 @@ function UserManagerVerify() {
 		Logger();
 	}
 	$ok = 0;
-	if( $gUserVerified == 0 )
+	if( ! $gUserVerified )
 	{
 		$_SESSION['authenticated'] = 0;
 		$gAction = "Start";
