@@ -50,6 +50,10 @@ function UserManager() {
 			UserManagerPassword();
 			break;
 		
+		case( 'privileges' ):
+			UserManagerPrivileges();
+			break;
+		
 		case( 'report' ):
 			UserManagerReport();
 			break;
@@ -461,7 +465,18 @@ function UserManagerInit()
 		Logger();
 	}
 	
+	$gUsers = array();
+	$query = "select * from users";
+	DoQuery( $query, $gDbControl );
+	while( $row = mysql_fetch_assoc( $gResult ) ) {
+		$id = $row['id'];
+		$gUsers[$id] = $row;
+	}
+	
 	$gLevels = array();
+	$gLevelIdToLevel = array();
+	$gLevelToName = array();
+	$gLevelNameToVal = array();
 	
 	$query = "select * from levels order by level desc";
 	DoQuery( $query, $gDbControl );
@@ -472,6 +487,14 @@ function UserManagerInit()
 		$gLevelIdToLevel[$id] = $level;
 		$gLevelToName[$level] = $row['name'];
 		$gLevelNameToVal[$row['name']] = $level;
+	}
+	
+	$gPrivileges = array();
+	$query = "select * from user_privileges";
+	DoQuery( $query, $gDbControl );
+	while( $row = mysql_fetch_assoc( $gResult ) ) {
+		$id = $row['id'];
+		$gPrivileges[$id] = $row;
 	}
 	if( $gTrace) array_pop( $gFunction );
 }
@@ -492,8 +515,7 @@ function UserManagerLoad( $userid )
 	
 	DoQuery( "select levelId, enabled from user_privileges where id = '$gUserId'", $gDbControl );
 	list( $levelId, $gUserEnabled ) = mysql_fetch_array( $gResult );
-	Logger("levelId: $levelId");
-	$gLevel = $gLevelIdToLevel[$levelId];
+	$gLevel = empty($gLevelIdToLevel[$levelId]) ? 0 : $gLevelIdToLevel[$levelId];
 	if( $gTrace ) array_pop( $gFunction );
 }
 
@@ -699,6 +721,36 @@ function UserManagerLevels()
 	echo "</table>";
 	echo "</div>";
 	if( $gTrace ) array_pop( $gFunction );
+}
+
+function UserManagerPrivileges()
+{
+	include( "globals.php" );
+	if( $gTrace ) { 
+		$gFunction[] = "UserManagerPrivileges()";
+		Logger();
+	}
+	
+	echo "<h2>User Privileges</h2>";
+	echo "<div class=CommonV2>";
+	echo "<table>";
+	echo "<tr>";
+	echo "  <th>User</th>";
+	echo "  <th>Level</th>";
+	echo "  <th>Enabled</th>";
+	echo "</tr>";
+	
+	foreach( $gUsers as $row ) {
+		$id = $row['id'];
+		echo "<tr>";
+		printf( "<td>%s</td>", $row['username'] );
+		$levelId = $gPrivileges[$id]['levelId'];
+		$level = $gLevelIdToLevel[$levelId];
+		printf( "<td>%s</td>", $gLevelToName[$level] );
+		printf( "<td>%s</td>", $row['enabled'] );		
+		echo "</tr>";
+	}
+	echo "</table>";
 }
 
 function UserManagerReport()
