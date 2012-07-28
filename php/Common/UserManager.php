@@ -224,31 +224,24 @@ function UserManagerDisplay()
 {
 	include( "globals.php" );
 	if( $gTrace ) { 
-		$gFunction[] = "CommonV2:UserManagerDisplay()";
+		$gFunction[] = "UserManagerDisplay()";
 		Logger();
 	}
 	
 	echo "<h2>User Control</h2>";
 	echo "<div class=CommonV2>";
 	echo "<input type=hidden name=from value=Users>";
-	echo sprintf( "<input type=hidden name=userid value='%d'>", $GLOBALS['gUserId'] );
+	echo sprintf( "<input type=hidden name=userid value='%d'>", $gUserId );
 
 	$acts = array();
 	$acts[] = "MySetValue('area','update')";
-	$acts[] = "MySetValue('id', '" . $GLOBALS['gUserId'] . "')";
+	$acts[] = "MySetValue('id', '" . $gUserId . "')";
 	$acts[] = "MyAddAction('Update')";
 	echo sprintf( "<input type=button onClick=\"%s\" id=update value=Update>", join(';',$acts ) );
 	
-	if( ! UserManagerAuthorized('control') ) continue;
-	$i = 0;
-
-	$pid = $gAccessNameToId[ $level ];
-	$query = "select * from users, access where";
-	$query .= " users.userid = access.userid and access.privid = '$pid' order by users.username ASC";
-	DoQuery( $query );
-	
-	if( $local_numrows ) {
-		echo "<h3>" . $level. "</h3>";
+	foreach( $gLevels as $levelId => $row ) {
+		DoQuery( "select * from user_privileges where levelId = '$levelId'", $gDbControl );	
+		echo "<h3>" . $gLevelIdToName[$levelId] . "</h3>";
 
 		echo "<table class=sortable>";
 		echo "<tr>";
@@ -310,7 +303,6 @@ function UserManagerDisplay()
 	echo "<th>First</th>";
 	echo "<th>Last</th>";
 	echo "<th>E-Mail</th>";
-	echo "<th>Access</th>";
 	echo "<th>Actions</th>";
 	echo "</tr>";
 
@@ -475,6 +467,7 @@ function UserManagerInit()
 	
 	$gLevels = array();
 	$gLevelIdToLevel = array();
+	$gLevelIdToName = array();
 	$gLevelToName = array();
 	$gLevelNameToVal = array();
 	
@@ -485,6 +478,7 @@ function UserManagerInit()
 		$level = $row['level'];
 		$gLevels[$id] = $row;
 		$gLevelIdToLevel[$id] = $level;
+		$gLevelIdToName[$id] = $row['name'];
 		$gLevelToName[$level] = $row['name'];
 		$gLevelNameToVal[$row['name']] = $level;
 	}
