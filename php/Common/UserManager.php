@@ -26,6 +26,10 @@ function UserManager() {
 			UserManagerControl();
 			break;
 
+		case( 'features' );
+			UserManagerFeatures();
+			break;
+			
 		case( 'inactive' );
 			UserManagerInactive();
 			break;
@@ -407,35 +411,52 @@ function UserManagerFeatures()
 
 	$acts = array();
 	$acts[] = "MySetValue('area','features')";
+	$acts[] = "MySetValue('func','update')";
 	$acts[] = "MySetValue('id', '" . $gUserId . "')";
 	$acts[] = "MyAddAction('Update')";
-	echo sprintf( "<input type=button onClick=\"%s\" id=update value=Update>", join(';',$acts ) );
+	$tag = MakeTag('update');
+	echo sprintf( "<input type=button onClick=\"%s\" $tag value=Update>", join(';',$acts ) );
 
 	echo "<table>";
 	echo "<tr>";
 	echo "  <th>Feature</th>";
 	echo "  <th>Enabled</th>";
+	echo "  <th>Action</th>";
 	echo "</tr>";
 	
-	foreach( $gUsers as $row ) {
-		$uid = $row['id'];
-		$jscript = "onChange=\"MyAddField('$uid');MyToggleBgRed('update');\"";
+	foreach( $gFeatures as $row ) {
+		$id = $row['id'];
+		$jscript = "onChange=\"MyAddField('$id');MyToggleBgRed('update');\"";
 		echo "<tr>";
-		printf( "<td>%s</td>", $row['username'] );
-		echo "<td>";
-		$tag = MakeTag('levelId', $uid);
-		echo "<select $tag $jscript>";
-		foreach( $gLevelIdToName as $lid => $name ) {
-			$selected = ( $lid == $gPrivileges[$uid]['levelId'] ) ? "selected" : "";
-			printf( "<option value=%d $selected>%s</option>", $lid, $name );
-		}
-		echo "</select>";
-		echo "</td>";
-		$checked = $gPrivileges[$uid]['enabled'] ? "checked" : "";
-		$tag = MakeTag('enabled', $uid);
+		$tag = MakeTag('f_name',$id);
+		printf( "<td><input type=text $tag $jscript value='%s'></td>", $row['name'] );
+		$checked = $row['enabled'] ? "checked" : "";
+		$tag = MakeTag('enabled', $id);
 		printf( "<td class=c><input type=checkbox $tag value=1 $checked $jscript ></td>\n" );
+		
+		$acts = array();
+		$acts[] = "MySetValue('area','features')";
+		$acts[] = "MySetValue('func','del')";
+		$acts[] = "MySetValue('id','$id')";
+		$str = sprintf( "Are you sure you want to delete %s?", $row['name'] );
+		$acts[] = "MyConfirm('$str')";
+		echo sprintf( "<td class=c><input type=button onClick=\"%s\" value=Del></td>", join(';',$acts ) );
 		echo "</tr>";
 	}
+	$id = 0;
+	$jscript = "onChange=\"MyAddField('$id');MyToggleBgRed('update');\"";
+	echo "<tr>";
+	$tag = MakeTag('f_name',$id);
+	printf( "<td><input type=text $tag value='%s'></td>", "" );
+	echo "<td>&nbsp;</td>";
+	
+	$acts = array();
+	$acts[] = "MySetValue('area','features')";
+	$acts[] = "MySetValue('func','add')";
+	$acts[] = "MyAddAction('Update')";
+	echo sprintf( "<td class=c><input type=button onClick=\"%s\" value=Add></td>", join(';',$acts ) );
+
+	echo "</tr>";
 	echo "</table>";
 }
 
@@ -479,6 +500,13 @@ function UserManagerInit()
 	while( $row = mysql_fetch_assoc( $gResult ) ) {
 		$id = $row['id'];
 		$gUsers[$id] = $row;
+	}
+	
+	$gFeatures = array();
+	DoQuery( "select * from features order by name asc", $gDbControl );
+	while( $row = mysql_fetch_assoc( $gResult ) ) {
+		$id = $row['id'];
+		$gFeatures[$id] = $row;
 	}
 	
 	$gLevels = array();
@@ -1126,6 +1154,64 @@ function UserManagerUpdate()
 	
 	$area = $_POST['area'];
 	$func = $_POST['func'];
+	
+	if( $area == 'features' ) {
+		if( $func == 'add' ) {
+			$id = $_POST['id'];
+			$query = sprintf( "insert into features set name = '%s', enabled = 0", $_POST['f_name_0'] );
+			DoQuery( $query, $gDbControl );
+			
+			$text = array();
+			$text[] = "insert event_log set time=now()";
+			$text[] = "type = 'feature'";
+			$text[] = "userid = '$userid'";
+			$text[] = sprintf( "item = '%s'", str_replace( "'", "\'", $query ) );
+			$query = join( ',', $text );
+			DoQuery( $query, $gDbControl );
+		}
+
+		if( $func == 'del' ) {
+			$id = $_POST['id'];
+			$query = "delete from features where id = '$id'";
+			DoQuery( $query, $gDbControl );
+			
+			$text = array();
+			$text[] = "insert event_log set time=now()";
+			$text[] = "type = 'feature'";
+			$text[] = "userid = '$userid'";
+			$text[] = sprintf( "item = '%s'", str_replace( "'", "\'", $query ) );
+			$query = join( ',', $text );
+			DoQuery( $query, $gDbControl );
+		}
+
+		if( $func == 'update' ) {
+			$tmp = preg_split( '/,/', $_POST['fields'] );
+			$ids = array_unique($tmp);
+			foreach( $ids as $id ) {
+				if( empty( $id ) ) continue;
+				$name = $_POST['f_name_' . $id];
+				$ena = empty( $_POST['enabled_' . $id] ) ? 0 : 1;
+				$acts = array();
+				if( $name != $gFeatures[$id]['name'] ) {
+					$acts[] = "name = '$name'";
+				}
+				if( $ena != $gFeatures[$id]['enabled'] ) {
+					$acts[] = "`enabled` = '$ena'";
+				}
+				if( empty( $acts ) ) continue;
+				$query = "update features set " . join( ',', $acts ) . " where id = '$id'";
+				DoQuery( $query, $gDbControl );
+				
+				$text = array();
+				$text[] = "insert event_log set time=now()";
+				$text[] = "type = 'feature'";
+				$text[] = "userid = '$userid'";
+				$text[] = sprintf( "item = '%s'", str_replace( "'", "\'", $query ) );
+				$query = join( ',', $text );
+				DoQuery( $query, $gDbControl );
+			}
+		}
+	}
 	
 	if( $area == "levels" ) {
 		if( $func == "add" ) {
