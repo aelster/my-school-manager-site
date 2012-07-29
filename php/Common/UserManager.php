@@ -228,47 +228,37 @@ function UserManagerDisplay()
 		Logger();
 	}
 	
-	echo "<h2>User Control</h2>";
+	echo "<h2>Users</h2>";
 	echo "<div class=CommonV2>";
 	echo "<input type=hidden name=from value=Users>";
 	echo sprintf( "<input type=hidden name=userid value='%d'>", $gUserId );
 
 	$acts = array();
-	$acts[] = "MySetValue('area','update')";
+	$acts[] = "MySetValue('area','users')";
+	$acts[] = "MySetValue('func','update')";
 	$acts[] = "MySetValue('id', '" . $gUserId . "')";
 	$acts[] = "MyAddAction('Update')";
 	echo sprintf( "<input type=button onClick=\"%s\" id=update value=Update>", join(';',$acts ) );
 	
-	foreach( $gLevels as $levelId => $row ) {
-		DoQuery( "select * from user_privileges where levelId = '$levelId'", $gDbControl );	
-		echo "<h3>" . $gLevelIdToName[$levelId] . "</h3>";
-
-		echo "<table class=sortable>";
-		echo "<tr>";
-		echo "<th>#</th>";
-		echo "<th>Username</th>";
-		echo "<th>First</th>";
-		echo "<th>Last</th>";
-		echo "<th>E-Mail</th>";
-		echo "<th>Last Login</th>";
-		echo "<th>Active</th>";
-		echo "<th>Actions</th>";
-		echo "</tr>";
-	}
+	echo "<table class=sortable>";
+	echo "<tr>";
+	echo "<th>Username</th>";
+	echo "<th>First</th>";
+	echo "<th>Last</th>";
+	echo "<th>E-Mail</th>";
+	echo "<th>Last Login</th>";
+	echo "<th>Active</th>";
+	echo "<th>Actions</th>";
+	echo "</tr>";
 	
-	$j = 1;
-	while( $user = mysql_fetch_assoc( $local_result ) )
-	{
-		$id = $user['userid'];
-		$jscript = "onChange=\"addField('$id');toggleBgRed('update');\"";
-		
+	foreach( $gUsers as $user ) {
+		$id = $user['id'];
+		$jscript = "onChange=\"MyAddField('$id');MyToggleBgRed('update');\"";
 		echo "<tr>";
-		printf( "<td class=sorttable_nosort>$j</td>" );
-		echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_username value=\"%s\" $jscript size=10></td>\n", $user['username'], $id, $user['username']);
-		echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_first value=\"%s\" $jscript size=10></td>\n", $user['first'], $id, $user['first']);
-		echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_last value=\"%s\" $jscript size=10></td>\n", $user['last'], $id, $user['last']);
-		echo sprintf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_email value=\"%s\" $jscript size=20></td>\n", $user['email'], $id, $user['email']);
-
+		printf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_username value=\"%s\" $jscript size=10></td>\n", $user['username'], $id, $user['username']);
+		printf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_first value=\"%s\" $jscript size=10></td>\n", $user['first'], $id, $user['first']);
+		printf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_last value=\"%s\" $jscript size=10></td>\n", $user['last'], $id, $user['last']);
+		printf( "<td sorttable_customkey=\"%s\"><input type=text name=u_%d_email value=\"%s\" $jscript size=30></td>\n", $user['email'], $id, $user['email']);
 		if( $user['lastlogin'] == '0000-00-00 00:00:00' )
 			$str = "never";
 		else {
@@ -280,54 +270,35 @@ function UserManagerDisplay()
 
 		$checked = $user['active'] ? "checked" : "";
 		printf( "<td class=c><input type=checkbox name=u_%d_active value=1 $checked $jscript ></td>\n", $id );
-
-		echo "<td>";
+		echo "<td class=c>";
 		$acts = array();
-		$acts[] = "MySetValue('area','delete')";
+		$acts[] = "MySetValue('area','users')";
+		$acts[] = "MySetValue('func','delete')";
 		$acts[] = "MySetValue('id', '$id')";
 		$name = sprintf( "%s %s", $user['first'], $user['last'] );
-		$acts[] = "myConfirm('Are you sure you want to delete $name')";
+		$acts[] = "MyConfirm('Are you sure you want to delete $name')";
 		echo sprintf( "<input type=button onClick=\"%s\" id=update value=Del>", join(';',$acts ) );
-
 		echo "</tr>";
-		$j++;
 	}
-	if( $local_numrows ) echo "</table>";
-
-	echo "<h3>New Member</h3>";
-
-	echo "<table>";
-	
-	echo "<tr>";
-	echo "<th>Username</th>";
-	echo "<th>First</th>";
-	echo "<th>Last</th>";
-	echo "<th>E-Mail</th>";
-	echo "<th>Actions</th>";
-	echo "</tr>";
 
 	echo "<tr>";
-	echo "<td><input type=text name=username size=20></td>";
-	echo "<td><input type=text name=first size=20></td>";
-	echo "<td><input type=text name=last size=20></td>";
-	echo "<td><input type=text name=email size=20></td>";
-	echo "<td><select name=privid>";
-	DoQuery( "select name, id from privileges order by level asc" );
-	while( list( $name, $level ) = mysql_fetch_array( $local_result ) )
-	{
-		if( $vlevels[$name] > $GLOBALS['gAccessLevel'] ) continue;
-		echo "<option value=$level>$name</option>";
-	}
-	echo "</select></td>";
-	echo "<td>";
+	echo "<td><input type=text name=username size=10></td>";
+	echo "<td><input type=text name=first size=10></td>";
+	echo "<td><input type=text name=last size=10></td>";
+	echo "<td><input type=text name=email size=30></td>";
+	echo "<td>&nbsp;</td>";
+	echo "<td>&nbsp;</td>";
+	echo "<td class=c>";
 	$acts = array();
-	$acts[] = "MySetValue('area','add')";
+	$acts[] = "MySetValue('area','users')";
+	$acts[] = "MySetValue('func','add')";
 	$acts[] = "MySetValue('id', '" . $GLOBALS['gUserId'] . "')";
 	$acts[] = "MyAddAction('Update')";
 	echo sprintf( "<input type=button onClick=\"%s\" id=update value=Add>", join(';',$acts ) );
 	echo "</td>";
 	
 	echo "</tr>";
+	echo "</table>";
 	
 	echo "</div>";
 	if( $gTrace ) array_pop( $gFunction );
@@ -423,6 +394,51 @@ END;
 	if( $gTrace ) array_pop( $gFunction );
 }
 
+function UserManagerFeatures()
+{
+	include( "globals.php" );
+	if( $gTrace ) { 
+		$gFunction[] = "UserManagerFeatures()";
+		Logger();
+	}
+	
+	echo "<h2>Features</h2>";
+	echo "<div class=CommonV2>";
+
+	$acts = array();
+	$acts[] = "MySetValue('area','features')";
+	$acts[] = "MySetValue('id', '" . $gUserId . "')";
+	$acts[] = "MyAddAction('Update')";
+	echo sprintf( "<input type=button onClick=\"%s\" id=update value=Update>", join(';',$acts ) );
+
+	echo "<table>";
+	echo "<tr>";
+	echo "  <th>Feature</th>";
+	echo "  <th>Enabled</th>";
+	echo "</tr>";
+	
+	foreach( $gUsers as $row ) {
+		$uid = $row['id'];
+		$jscript = "onChange=\"MyAddField('$uid');MyToggleBgRed('update');\"";
+		echo "<tr>";
+		printf( "<td>%s</td>", $row['username'] );
+		echo "<td>";
+		$tag = MakeTag('levelId', $uid);
+		echo "<select $tag $jscript>";
+		foreach( $gLevelIdToName as $lid => $name ) {
+			$selected = ( $lid == $gPrivileges[$uid]['levelId'] ) ? "selected" : "";
+			printf( "<option value=%d $selected>%s</option>", $lid, $name );
+		}
+		echo "</select>";
+		echo "</td>";
+		$checked = $gPrivileges[$uid]['enabled'] ? "checked" : "";
+		$tag = MakeTag('enabled', $uid);
+		printf( "<td class=c><input type=checkbox $tag value=1 $checked $jscript ></td>\n" );
+		echo "</tr>";
+	}
+	echo "</table>";
+}
+
 function UserManagerInactive()
 {
 	include( "globals.php" );
@@ -458,7 +474,7 @@ function UserManagerInit()
 	}
 	
 	$gUsers = array();
-	$query = "select * from users";
+	$query = "select * from users order by username asc";
 	DoQuery( $query, $gDbControl );
 	while( $row = mysql_fetch_assoc( $gResult ) ) {
 		$id = $row['id'];
@@ -725,8 +741,15 @@ function UserManagerPrivileges()
 		Logger();
 	}
 	
-	echo "<h2>User Privileges</h2>";
+	echo "<h2>Privileges</h2>";
 	echo "<div class=CommonV2>";
+
+	$acts = array();
+	$acts[] = "MySetValue('area','privileges')";
+	$acts[] = "MySetValue('id', '" . $gUserId . "')";
+	$acts[] = "MyAddAction('Update')";
+	echo sprintf( "<input type=button onClick=\"%s\" id=update value=Update>", join(';',$acts ) );
+
 	echo "<table>";
 	echo "<tr>";
 	echo "  <th>User</th>";
@@ -735,13 +758,22 @@ function UserManagerPrivileges()
 	echo "</tr>";
 	
 	foreach( $gUsers as $row ) {
-		$id = $row['id'];
+		$uid = $row['id'];
+		$jscript = "onChange=\"MyAddField('$uid');MyToggleBgRed('update');\"";
 		echo "<tr>";
 		printf( "<td>%s</td>", $row['username'] );
-		$levelId = $gPrivileges[$id]['levelId'];
-		$level = $gLevelIdToLevel[$levelId];
-		printf( "<td>%s</td>", $gLevelToName[$level] );
-		printf( "<td>%s</td>", $row['enabled'] );		
+		echo "<td>";
+		$tag = MakeTag('levelId', $uid);
+		echo "<select $tag $jscript>";
+		foreach( $gLevelIdToName as $lid => $name ) {
+			$selected = ( $lid == $gPrivileges[$uid]['levelId'] ) ? "selected" : "";
+			printf( "<option value=%d $selected>%s</option>", $lid, $name );
+		}
+		echo "</select>";
+		echo "</td>";
+		$checked = $gPrivileges[$uid]['enabled'] ? "checked" : "";
+		$tag = MakeTag('enabled', $uid);
+		printf( "<td class=c><input type=checkbox $tag value=1 $checked $jscript ></td>\n" );
 		echo "</tr>";
 	}
 	echo "</table>";
@@ -1095,65 +1127,6 @@ function UserManagerUpdate()
 	$area = $_POST['area'];
 	$func = $_POST['func'];
 	
-	if( $area == "add" ) {
-		$uname = addslashes( $_POST['username'] );
-		
-		$acts = array();
-		$acts[] = sprintf( "username = '%s'", $uname );
-		$acts[] = sprintf( "last = '%s'", addslashes( $_POST['last'] ) );
-		$acts[] = sprintf( "first = '%s'", addslashes( $_POST['first'] ) );
-		$acts[] = sprintf( "email = '%s'", addslashes( $_POST['email'] ) );
-		$acts[] = sprintf( "password = '%s'", md5( sprintf( "%d", time())));
-		$acts[] = sprintf( "active = '1'" );
-		$query = "insert into users set " . join(',', $acts );
-		DoQuery( $query, $gDbControl );
-		$uid = mysql_insert_id();
-		
-		$text = array();
-		$text[] = "insert event_log set time=now()";
-		$text[] = "type = 'user'";
-		$text[] = "userid = '$id'";
-		$text[] = sprintf( "item = 'add %s(%d), set %s'", $uname, $uid, addslashes( join(',', $acts ) ) );
-		$query = join( ',', $text );
-		DoQuery( $query );
-		
-		$acc = $_POST['privid'];
-		$acts = array();
-		$acts[] = "userid = '$uid'";
-		$acts[] = "privid = '$acc'";
-		$query = "insert into access set " . join( ',', $acts );
-		DoQuery( $query );
-
-		$text = array();
-		$text[] = "insert event_log set time=now()";
-		$text[] = "type = 'access'";
-		$text[] = "userid = '$id'";
-		$text[] = sprintf( "item = 'update %s(%d), set %s'", $uname, $uid, addslashes( join(',', $acts ) ) );
-		$query = join( ',', $text );
-		DoQuery( $query );
-	}
-	
-	if( $area == "delete" ) {
-		$id = $_POST['id'];
-		$query = "delete from users where userid = '$id'";
-		DoQuery( $query );
-		
-		$text = array();
-		$text[] = "insert event_log set time=now()";
-		$text[] = "type = 'user'";
-		$text[] = "userid = '$userid'";
-		$text[] = sprintf( "item = 'delete %s(%d)'", $_POST["u_${id}_username"], $id );
-		$query = join( ',', $text );
-		DoQuery( $query );
-		
-		DoQuery( "delete from access where userid = '$id'" );
-		
-		DoQuery( "show tables like 'grades'" );
-		if( $local_numrows ) {
-			DoQuery( "delete from grades where userid = '$id'" );
-		}
-	}
-	
 	if( $area == "levels" ) {
 		if( $func == "add" ) {
 			$acts = array();
@@ -1230,144 +1203,130 @@ function UserManagerUpdate()
 		}
 	}
 
-
-	if( $area == "update" ) {
-		$done = array();
-		$uids = preg_split( '/,/', $_POST['fields'] );
+	if( $area == 'privileges' ) {
+		$tmp = preg_split( '/,/', $_POST['fields'] );
+		$uids = array_unique($tmp);
 		foreach( $uids as $uid ) {
-			if( ! empty( $uid ) ) {
-				if( array_key_exists( $uid, $done ) ) continue;
-				$done[ $uid ] = 1;
-				$query = "select * from users where userid = '$uid'";
-				DoQuery( $query, $gDbControl );
-				$user = mysql_fetch_assoc( $local_result );
-				
-				$acts = array();
-				
-				$tag = "u_${uid}_first";
-				if( strcmp( $_POST[$tag], $user['first'] ) ) $acts[] = "first = '" . addslashes( $_POST[$tag] ) . "'";
-				
-				$tag = "u_${uid}_last";
-				if( strcmp( $_POST[$tag], $user['last'] ) ) $acts[] = "last = '" . addslashes( $_POST[$tag] ) . "'";
-				
-				$tag = "u_${uid}_username";
-				if( strcmp( $_POST[$tag], $user['username'] ) ) $acts[] = "username = '" . addslashes( $_POST[$tag] ) . "'";
-				
-				$tag = "u_${uid}_email";
-				if( strcmp( $_POST[$tag], $user['email'] ) ) $acts[] = "email = '" . addslashes( $_POST[$tag] ) . "'";
-				
-				$tag = "u_${uid}_active";
-				$val = isset( $_POST[$tag] ) ? 1 : 0;
-				if( $val != $user['active'] ) $acts[] = "active = '${val}'";
-		
-				if( count( $acts ) ) {
-					$query = "update users set " . join( ',', $acts ) . " where userid = '$uid'";
-					DoQuery( $query, $gDbControl );
-					if( $local_numrows == 0 ) {
-						$acts = array();
-						foreach( array( 'first','last','email','username') as $fld ) {
-							$tag = sprintf( "u_%d_%s", $uid, $fld );
-							$acts[] = sprintf( "%s = '%s'", $fld, addslashes( $_POST[$tag] ) );
-						}
-						$query = "insert into users set " . join( ',', $acts );
-						DoQuery($query, $gDbControl );
-
-						$tag = sprintf( "u_%d_%s", $uid, 'privid');
-						$acc = $_POST[$tag];
-						$acts = array();
-						$acts[] = "userid = '$uid'";
-						$acts[] = "privid = '$acc'";
-						$query = "insert into access set " . join( ',', $acts );
-						DoQuery( $query );
-
-					}
-					
-					$text = array();
-					$text[] = "insert event_log set time=now()";
-					$text[] = "type = 'user'";
-					$text[] = "userid = '$userid'";
-					$text[] = sprintf( "item = 'update %s(%d), set %s'", $user['username'], $uid, addslashes( join(',', $acts ) ) );
-					$query = join( ',', $text );
-					DoQuery( $query, $gDbControl );
-				}
-				
-				$query = "select * from access where userid = '$uid'";
-				DoQuery( $query );
-				$access = mysql_fetch_assoc( $local_result );
-				
-				$tag = "u_${uid}_privid";
-				if( $access[ 'PrivId' ] !== $_POST[$tag] )
-				{
-					$query = sprintf( "update access set privid = '%s' where userid = '%s'", $_POST[$tag], $uid );
-					DoQuery( $query );
-					
-					$text = array();
-					$text[] = "insert event_log set time=now()";
-					$text[] = "type = 'user'";
-					$text[] = "userid = '$userid'";
-					$text[] = sprintf( "item = 'update %s(%d), set privid = %s'", $user['username'], $uid, $_POST[$tag] );
-					$query = join( ',', $text );
-					DoQuery( $query );
-				}
+			if( empty( $uid ) ) continue;
+			$lid = $_POST['levelId_' . $uid];
+			$ena = empty( $_POST['enabled_' . $uid] ) ? 0 : 1;
+			$acts = array();
+			if( $lid != $gPrivileges[$uid]['levelId'] ) {
+				$acts[] = "levelId = '$lid'";
 			}
-		}
-	}
-	
-	if( $gTrace ) array_pop( $GLOBALS[ 'gFunction' ] );
-	return;
-	
-	DoQuery( "select * from users where userid= '$id'" );
-	$user = mysql_fetch_assoc( $local_result );
-	
-	$settings = array( 'active', 'home', 'work', 'cell', 'street', 'city', 'zip' );
-
-	$fld_name = 'username';
-	if( isset( $_POST[ $fld_name ] ) )
-	{
-		if( $_POST[ $fld_name ] != $user[ $fld_name ] )
-		{
+			if( $ena != $gPrivileges[$uid]['enabled'] ) {
+				$acts[] = "`enabled` = '$ena'";
+			}
+			if( empty( $acts ) ) continue;
+			$query = "update user_privileges set " . join( ',', $acts ) . " where id = '$uid'";
+			DoQuery( $query, $gDbControl );
 			
-			$query = sprintf( "select userid from users where username = '%s'", $_POST[ $fld_name ] );
-			DoQuery( $query );
-			if( $local_numrows > 0 ) {
-				echo sprintf( "** Username [%s] already taken **<br>", $_POST[ $fld_name ] );
-			} else {
-				array_push( $settings, 'username' );
-			}
+			$text = array();
+			$text[] = "insert event_log set time=now()";
+			$text[] = "type = 'privilege'";
+			$text[] = "userid = '$userid'";
+			$text[] = sprintf( "item = '%s'", str_replace( "'", "\'", $query ) );
+			$query = join( ',', $text );
+			DoQuery( $query, $gDbControl );
 		}
 	}
 
-	if( UserManager( 'authorized', 'control' ) ) {
-		array_push( $settings, 'access', 'last', 'first', 'email' );
+	if( $area == 'users' ) {	
+		if( $func == "add" ) {
+			$uname = addslashes( $_POST['username'] );
+			
+			$acts = array();
+			$acts[] = sprintf( "username = '%s'", $uname );
+			$acts[] = sprintf( "last = '%s'", addslashes( $_POST['last'] ) );
+			$acts[] = sprintf( "first = '%s'", addslashes( $_POST['first'] ) );
+			$acts[] = sprintf( "email = '%s'", addslashes( $_POST['email'] ) );
+			$acts[] = sprintf( "password = '%s'", md5( sprintf( "%d", time())));
+			$acts[] = sprintf( "active = '1'" );
+			$query = "insert into users set " . join(',', $acts );
+			DoQuery( $query, $gDbControl );
+			$uid = mysql_insert_id();
+			
+			$text = array();
+			$text[] = "insert event_log set time=now()";
+			$text[] = "type = 'user'";
+			$text[] = "userid = '$id'";
+			$text[] = sprintf( "item = 'add %s(%d), set %s'", $uname, $uid, addslashes( join(',', $acts ) ) );
+			$query = join( ',', $text );
+			DoQuery( $query, $gDbControl );
+		}
+	
+		if( $func == "delete" ) {
+			$id = $_POST['id'];
+			$query = "delete from users where id = '$id'";
+			DoQuery( $query, $gDbControl );
+			
+			$query = "delete from user_privileges where id = '$id'";
+			DoQuery( $query, $gDbControl );
+	
+			$text = array();
+			$text[] = "insert event_log set time=now()";
+			$text[] = "type = 'user'";
+			$text[] = "userid = '$userid'";
+			$text[] = sprintf( "item = 'delete %s(%d)'", $_POST["u_${id}_username"], $id );
+			$query = join( ',', $text );
+			DoQuery( $query, $gDbControl );
+		}
+	
+		if( $func == "update" ) {
+			$done = array();
+			$uids = preg_split( '/,/', $_POST['fields'] );
+			foreach( $uids as $uid ) {
+				if( ! empty( $uid ) ) {
+					if( array_key_exists( $uid, $done ) ) continue;
+					$done[ $uid ] = 1;
+					$query = "select * from users where id = '$uid'";
+					DoQuery( $query, $gDbControl );
+					$user = mysql_fetch_assoc( $gResult );
+					
+					$acts = array();
+					
+					$tag = "u_${uid}_first";
+					if( strcmp( $_POST[$tag], $user['first'] ) ) $acts[] = "first = '" . addslashes( $_POST[$tag] ) . "'";
+					
+					$tag = "u_${uid}_last";
+					if( strcmp( $_POST[$tag], $user['last'] ) ) $acts[] = "last = '" . addslashes( $_POST[$tag] ) . "'";
+					
+					$tag = "u_${uid}_username";
+					if( strcmp( $_POST[$tag], $user['username'] ) ) $acts[] = "username = '" . addslashes( $_POST[$tag] ) . "'";
+					
+					$tag = "u_${uid}_email";
+					if( strcmp( $_POST[$tag], $user['email'] ) ) $acts[] = "email = '" . addslashes( $_POST[$tag] ) . "'";
+					
+					$tag = "u_${uid}_active";
+					$val = isset( $_POST[$tag] ) ? 1 : 0;
+					if( $val != $user['active'] ) $acts[] = "active = '${val}'";
+			
+					if( count( $acts ) ) {
+						$query = "update users set " . join( ',', $acts ) . " where id = '$uid'";
+						DoQuery( $query, $gDbControl );
+						if( ! $gNumRows ) {
+							$acts = array();
+							foreach( array( 'first','last','email','username') as $fld ) {
+								$tag = sprintf( "u_%d_%s", $uid, $fld );
+								$acts[] = sprintf( "%s = '%s'", $fld, addslashes( $_POST[$tag] ) );
+							}
+							$query = "insert into users set " . join( ',', $acts );
+							DoQuery($query, $gDbControl );
+						}
+						
+						$text = array();
+						$text[] = "insert event_log set time=now()";
+						$text[] = "type = 'user'";
+						$text[] = "userid = '$userid'";
+						$text[] = sprintf( "item = 'update %s(%d), set %s'", $user['username'], $uid, addslashes( join(',', $acts ) ) );
+						$query = join( ',', $text );
+						DoQuery( $query, $gDbControl );
+					}
+				}
+			}
+		}
 	}
 	
-	foreach( $settings as $fld_name )
-	{
-		if( ! isset ( $_POST[ $fld_name ] ) )		// The field isn't part of the update
-			continue;
-		
-		if( $_POST[ $fld_name ] == $user[ $fld_name ] )		// The field hasn't changed value
-			continue;
-		
-		$query = sprintf( "update users set %s = '%s' where userid = '%s'", $fld_name, $_POST[ $fld_name ], $id );
-		DoQuery( $query );
-
-		unset( $text );
-		$text[] = "insert event_log set time=now()";
-		$text[] = "type = 'user'";
-		$text[] = sprintf( "userid = '%d'", $GLOBALS['gUserId'] );
-		$text[] = sprintf( "item = 'update $fld_name from [%s] to [%s]'", $user[ $fld_name ], $_POST[ $fld_name ] );
-		$query = join( ",", $text );
-		DoQuery( $query );
-		echo "Updated field: $fld_name<br>";
-	}
-	if( $GLOBALS['gFrom'] == "UserSettings" ) {
-		UserManagerSettings( $id );
-	} elseif( $GLOBALS['gFrom'] == "UserSettingsControl" ) {
-		$GLOBALS['gAction'] = 'User_Control';
-	} elseif( $GLOBALS['gFrom'] == 'UserEdit' ) {
-		$_POST['btn_action'] = NULL;
-	}
 	if( $gTrace ) array_pop( $GLOBALS[ 'gFunction' ] );
 }
 
