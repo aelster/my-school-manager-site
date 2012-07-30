@@ -7,6 +7,8 @@ function Logger () {
 		$str = join( '>', $gFunction );
 	}
 	$tstr = str_replace( "'", "\'", $str );
+#	echo "<pre>$tstr</pre>";
+#	return;
 	echo <<<END
 <script type="text/javascript">
 MyDebug('$tstr');

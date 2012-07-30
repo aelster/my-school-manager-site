@@ -4,8 +4,14 @@ function SessionStuff( $cmd )
 	include( "globals.php" );
 	if( $gTrace ) {
 		$gFunction[] = "SessionStuff($cmd)";
-		Logger();
+		if( $gAction != 'Logout') Logger();
 	}
+
+   if( $gFeature == 'eedge' ) {
+      $gDb = $gDbEEdge;
+   } elseif( $gFeature == 'control' ) {
+      $gDb = $gDbControl;
+   }
 	
 	switch( $cmd )
 	{

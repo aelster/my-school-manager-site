@@ -7,7 +7,7 @@ function DoQuery()
 	$query = func_get_arg( 0 );
 	$db = ( $num_args == 1 ) ? $gDb : func_get_arg( 1 );
 	
-	if( $gDebug ) $dmsg = "&nbsp;&nbsp;&nbsp;&nbsp;DoQuery: $query";
+	if( $gDebug ) $dmsg = "&nbsp;&nbsp;&nbsp;&nbsp;DoQuery($gDb): $query";
 	
 	$gResult = mysql_query( $query, $db );
 	if( mysql_errno( $db ) != 0 )

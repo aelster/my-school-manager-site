@@ -19,7 +19,12 @@ function UserManager() {
 	switch( $area )
 	{
 		case( 'authorized' ):
-			return UserManagerAuthorized( func_get_arg( 1 ) );
+			$num_args = func_num_args();
+			if( $num_args == 2 ) {
+				return UserManagerAuthorized( func_get_arg(1) );
+			} else {
+				return UserManagerAuthorized( func_get_arg(1), func_get_arg(2) );
+			}
 			break;
 		
 		case( 'control' ):
@@ -148,18 +153,37 @@ function UserManagerActivate( $new_val )
 	if( $gTrace ) array_pop( $gFunction );
 }
 
-function UserManagerAuthorized( $privilege )
+function UserManagerAuthorized()
 {
 	include( "globals.php" );
+	if( func_num_args() == 1 ) {
+		$privilege = func_get_arg(0);
+		$db = $gDbControl;
+		$dbt = "control";
+	} else {
+		$privilege = func_get_arg(0);
+		$db = func_get_arg(1);
+		$dbt = ( $db == $gDbControl ) ? "control" : "other";
+	}
 	if( $gTrace ) {
-		$gFunction[] = "UserManagerAuthorized($privilege)";
+		$gFunction[] = "UserManagerAuthorized($privilege,$dbt)";
 		Logger();
 	}
-	$level = $gLevelNameToVal[$privilege];
-	Logger("checking privilege $privilege ($level), gLevel: $gLevel" );
-	$ok = ( $level <= $gLevel ) ? 1 : 0;
-	Logger( "OK: $ok" );
 	
+	$ok = 0;
+	if( $gUserId ) {
+		DoQuery( "select levelId, enabled from user_privileges where id = $gUserId", $db );
+		list ($lid,$ena) = mysql_fetch_array( $gResult );
+		if( empty( $ena ) ) {
+			$ok = 0;
+			if( $gTrace ) Logger( "user $gUserId not enabled" );
+		} else {
+			$level_req = $gLevelNameToVal[$privilege];
+			$level_auth = $gLevelIdToLevel[$lid];
+			$ok = ( $level_req <= $level_auth ) ? 1 : 0;
+			if( $gTrace ) Logger( "user $gUserId requesting auth $level_req, authorized for $level_auth" );
+		}	
+	}
 	if( $gTrace ) array_pop( $gFunction );
 	return $ok;
 }
@@ -282,6 +306,7 @@ function UserManagerDisplay()
 		$name = sprintf( "%s %s", $user['first'], $user['last'] );
 		$acts[] = "MyConfirm('Are you sure you want to delete $name')";
 		echo sprintf( "<input type=button onClick=\"%s\" id=update value=Del>", join(';',$acts ) );
+		echo "</td>";
 		echo "</tr>";
 	}
 
@@ -529,7 +554,7 @@ function UserManagerInit()
 	
 	$gPrivileges = array();
 	$query = "select * from user_privileges";
-	DoQuery( $query, $gDbControl );
+	DoQuery( $query );
 	while( $row = mysql_fetch_assoc( $gResult ) ) {
 		$id = $row['id'];
 		$gPrivileges[$id] = $row;
@@ -769,11 +794,19 @@ function UserManagerPrivileges()
 		Logger();
 	}
 	
-	echo "<h2>Privileges</h2>";
+	if( $gDb == $gDbControl ) {
+		$tag = "Control";
+	} elseif( $gDb == $gDbEEdge ) {
+		$tag = "EEdge";
+	} else {
+		$tag = "Other";
+	}
+	echo "<h2>$tag Privileges</h2>";
 	echo "<div class=CommonV2>";
 
 	$acts = array();
 	$acts[] = "MySetValue('area','privileges')";
+	$acts[] = "MySetValue('func','update')";
 	$acts[] = "MySetValue('id', '" . $gUserId . "')";
 	$acts[] = "MyAddAction('Update')";
 	echo sprintf( "<input type=button onClick=\"%s\" id=update value=Update>", join(';',$acts ) );
@@ -783,27 +816,83 @@ function UserManagerPrivileges()
 	echo "  <th>User</th>";
 	echo "  <th>Level</th>";
 	echo "  <th>Enabled</th>";
+	echo "  <th>Action</th>";
 	echo "</tr>";
 	
-	foreach( $gUsers as $row ) {
-		$uid = $row['id'];
-		$jscript = "onChange=\"MyAddField('$uid');MyToggleBgRed('update');\"";
+	$uids_used = array();
+	
+	DoQuery( "select id, levelId, enabled from user_privileges" );
+	while( list( $uid, $lid, $ena ) = mysql_fetch_array( $gResult ) ) {
+		$name = $gUsers[$uid]['username'];
+		$uids_used[$uid] = 1;
+		$jscript = "onChange=\"MySetValue('feature','$gFeature');MyAddField('$uid');MyToggleBgRed('update');\"";
 		echo "<tr>";
-		printf( "<td>%s</td>", $row['username'] );
+		printf( "<td>%s</td>", $name );
+		
 		echo "<td>";
 		$tag = MakeTag('levelId', $uid);
 		echo "<select $tag $jscript>";
-		foreach( $gLevelIdToName as $lid => $name ) {
+		foreach( $gLevelIdToName as $lid => $pname ) {
 			$selected = ( $lid == $gPrivileges[$uid]['levelId'] ) ? "selected" : "";
-			printf( "<option value=%d $selected>%s</option>", $lid, $name );
+			printf( "<option value=%d $selected>%s</option>", $lid, $pname );
 		}
 		echo "</select>";
+		
 		echo "</td>";
 		$checked = $gPrivileges[$uid]['enabled'] ? "checked" : "";
 		$tag = MakeTag('enabled', $uid);
 		printf( "<td class=c><input type=checkbox $tag value=1 $checked $jscript ></td>\n" );
+		
+		echo "<td class=c>";
+		$acts = array();
+		$acts[] = "MySetValue('area','privileges')";
+		$acts[] = "MySetValue('feature','$gFeature')";
+		$acts[] = "MySetValue('func','delete')";
+		$acts[] = "MyAddField('$uid')";
+		$acts[] = "MyConfirm('Are you sure you want to delete $name from the privileges')";
+		echo sprintf( "<input type=button onClick=\"%s\" id=update value=Del>", join(';',$acts ) );
 		echo "</tr>";
 	}
+	
+#	if( $gFeature != 'control' ) {
+		echo "<tr>";
+		
+		DoQuery( "select * from users order by username asc", $gDbControl );
+		$tag = MakeTag('uid', 0);
+		echo "<td><select $tag>";
+		echo "<option value=0>-- Click Here to Add --</option>";
+		while( $row = mysql_fetch_assoc( $gResult ) ) {
+			$uid = $row['id'];
+			if( empty( $uids_used[$uid] ) ) {
+				printf( "<option value=%d>%s</option>", $uid, $row['username'] );
+			}
+		}
+		echo "</td>";
+		
+		echo "<td>";
+		$tag = MakeTag('levelId', 0);
+		echo "<select $tag $jscript>";
+		echo "<option value=-1></option>";
+		foreach( $gLevelIdToName as $lid => $name ) {
+			printf( "<option value=%d>%s</option>", $lid, $name );
+		}
+		echo "</select>";		
+		echo "</td>";
+		
+		echo "<td>&nbsp;</td>";
+		
+		echo "<td class=c>";
+		$acts = array();
+		$acts[] = "MySetValue('area','privileges')";
+		$acts[] = "MySetValue('feature','$gFeature')";
+		$acts[] = "MySetValue('func','add')";
+		$acts[] = "MySetValue('id', '$gUserId')";
+		$acts[] = "MyAddAction('Update')";
+		echo sprintf( "<input type=button onClick=\"%s\" id=update value=Add>", join(';',$acts ) );
+		echo "</td>";
+		
+		echo "</tr>";
+#	}
 	echo "</table>";
 }
 
@@ -1290,22 +1379,11 @@ function UserManagerUpdate()
 	}
 
 	if( $area == 'privileges' ) {
-		$tmp = preg_split( '/,/', $_POST['fields'] );
-		$uids = array_unique($tmp);
-		foreach( $uids as $uid ) {
-			if( empty( $uid ) ) continue;
-			$lid = $_POST['levelId_' . $uid];
-			$ena = empty( $_POST['enabled_' . $uid] ) ? 0 : 1;
-			$acts = array();
-			if( $lid != $gPrivileges[$uid]['levelId'] ) {
-				$acts[] = "levelId = '$lid'";
-			}
-			if( $ena != $gPrivileges[$uid]['enabled'] ) {
-				$acts[] = "`enabled` = '$ena'";
-			}
-			if( empty( $acts ) ) continue;
-			$query = "update user_privileges set " . join( ',', $acts ) . " where id = '$uid'";
-			DoQuery( $query, $gDbControl );
+		if( $func == 'add' ) {
+			$uid = $_POST['uid_0'];
+			$lid = $_POST['levelId_0'];
+			$query = "insert into user_privileges set id = '$uid', levelId = '$lid'";
+			DoQuery( $query );
 			
 			$text = array();
 			$text[] = "insert event_log set time=now()";
@@ -1313,7 +1391,47 @@ function UserManagerUpdate()
 			$text[] = "userid = '$userid'";
 			$text[] = sprintf( "item = '%s'", str_replace( "'", "\'", $query ) );
 			$query = join( ',', $text );
-			DoQuery( $query, $gDbControl );
+			DoQuery( $query );
+
+		} elseif( $func == 'delete' ) {
+			$uid = $_POST['fields'];
+			$query = "delete from user_privileges where id = '$uid'";
+			DoQuery( $query );
+			
+			$text = array();
+			$text[] = "insert event_log set time=now()";
+			$text[] = "type = 'privilege'";
+			$text[] = "userid = '$userid'";
+			$text[] = sprintf( "item = '%s'", str_replace( "'", "\'", $query ) );
+			$query = join( ',', $text );
+			DoQuery( $query );
+
+		} elseif( $func == 'update' ) {
+			$tmp = preg_split( '/,/', $_POST['fields'] );
+			$uids = array_unique($tmp);
+			foreach( $uids as $uid ) {
+				if( empty( $uid ) ) continue;
+				$lid = $_POST['levelId_' . $uid];
+				$ena = empty( $_POST['enabled_' . $uid] ) ? 0 : 1;
+				$acts = array();
+				if( $lid != $gPrivileges[$uid]['levelId'] ) {
+					$acts[] = "levelId = '$lid'";
+				}
+				if( $ena != $gPrivileges[$uid]['enabled'] ) {
+					$acts[] = "`enabled` = '$ena'";
+				}
+				if( empty( $acts ) ) continue;
+				$query = "update user_privileges set " . join( ',', $acts ) . " where id = '$uid'";
+				DoQuery( $query );
+				
+				$text = array();
+				$text[] = "insert event_log set time=now()";
+				$text[] = "type = 'privilege'";
+				$text[] = "userid = '$userid'";
+				$text[] = sprintf( "item = '%s'", str_replace( "'", "\'", $query ) );
+				$query = join( ',', $text );
+				DoQuery( $query );
+			}
 		}
 	}
 
