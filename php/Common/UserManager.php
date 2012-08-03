@@ -559,6 +559,13 @@ function UserManagerInit()
 		$id = $row['id'];
 		$gPrivileges[$id] = $row;
 	}
+	
+	$gGradeIDToLabel = array();
+	DoQuery( "select id, label from grades order by `order` asc", $gDbEEdge );
+	while( list( $id, $label ) = mysql_fetch_array( $gResult ) ) {
+		$gGradeIDToLabel[$id] = $label;
+	}
+	
 	if( $gTrace) array_pop( $gFunction );
 }
 
