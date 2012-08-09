@@ -11,7 +11,9 @@ function SessionStuff( $cmd )
       $gDb = $gDbEEdge;
    } elseif( $gFeature == 'control' ) {
       $gDb = $gDbControl;
-   }
+   } elseif( $gFeature == 'lunches' ) {
+		$gDb = $gDbLunches;
+	}
 	
 	switch( $cmd )
 	{

@@ -846,7 +846,11 @@ function UserManagerPrivileges()
 		echo "</select>";
 		
 		echo "</td>";
-		$checked = $gPrivileges[$uid]['enabled'] ? "checked" : "";
+		if( empty( $gPrivileges[$uid] ) ) {
+			$checked = "";
+		} else {
+			$checked = $gPrivileges[$uid]['enabled'] ? "checked" : "";
+		}
 		$tag = MakeTag('enabled', $uid);
 		printf( "<td class=c><input type=checkbox $tag value=1 $checked $jscript ></td>\n" );
 		
@@ -863,9 +867,11 @@ function UserManagerPrivileges()
 	
 #	if( $gFeature != 'control' ) {
 		echo "<tr>";
+		$uid = 0;
+		$jscript = "onChange=\"MySetValue('feature','$gFeature');MyAddField('$uid');MyToggleBgRed('update');\"";
 		
 		DoQuery( "select * from users order by username asc", $gDbControl );
-		$tag = MakeTag('uid', 0);
+		$tag = MakeTag('uid', $uid);
 		echo "<td><select $tag>";
 		echo "<option value=0>-- Click Here to Add --</option>";
 		while( $row = mysql_fetch_assoc( $gResult ) ) {
